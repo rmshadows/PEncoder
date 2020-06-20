@@ -1,12 +1,12 @@
 # PEncoder密码辅助
 
 #### 介绍
-Java Swing 密码加密器
+Java Swing 密码辅助工具
 
 使用略不方便，代码略乱，见谅。
 
 #### 编译
-版本：Java 11
+版本：[Java](https://www.oracle.com/index.html) 11
 
 1.  编译：`javac --module-source-path src -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8`
 2.  运行：`java -p bin -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`
@@ -35,11 +35,11 @@ Microsoft Windows [版本 10.0.18363.836]
 - *PEncoder使用的是UTF-8编码！
 
 
-关于运行环境:                                                   
+- 关于运行环境:                                                   
     Windows和Linunx一样,安装JDK或者JRE都行,在Java官网可以下载。         
     当然，附件里也有的。                                              
                                                                  
-关于运行：                                                      
+- 关于运行：                                                      
   Windows下，直接双击打开。或者cmd：                                
     `java -jar PEncoder.jar`                                        
                                                                   
@@ -53,7 +53,7 @@ Microsoft Windows [版本 10.0.18363.836]
 _______________________________________________________________________________________________________________
 ---------------------------------------------------使用方法------------------------------------------------------
 
-Get Start：
+- Get Start：
 1、第一次使用：
     从“-菜单栏-文件-新建-”一个PEncoderDatabasebak文件;
 
@@ -265,3 +265,8 @@ KeyB：1433223v
                                                                                       by Ryan 2020-06-20
                                                                                          
 ----------------------------------------------------------------------------------------------------------------
+### 关于
+
+    这个嘞，是自己写的第一个Java窗口应用。毕竟咱也不是计算机专业…敲代码为的是方便生活。我密码太多了，全是长密码，一个平台一个不同长密码。我记不住那么多密码，于是我就写了这个小东西辅助我管理密码。因为能力有限（喵喵叹气，咳咳），各位如果想改进下可以自己把源代码拉过去修改，我就不更新啦！如果觉得不好用（那肯定，这么麻烦的东西。市场上那些密码记录软件他不香吗？），也就看看作罢，图个娱乐。
+
+项目地址：> https://gitee.com/rmshadows/pencoder_cipher_encryptor
