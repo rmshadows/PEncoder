@@ -2,13 +2,15 @@
 
 #### 介绍
 Java Swing 密码加密器
-使用略不方便，代码略乱，见谅。
-#### 编译
-版本：Java11
 
-1.  编译：javac --module-source-path src -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8
-2.  运行：java -p bin -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher
-3.  打包：jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output P
+使用略不方便，代码略乱，见谅。
+
+#### 编译
+版本：Java 11
+
+1.  编译：`javac --module-source-path src -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8`
+2.  运行：`java -p bin -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`
+3.  打包：`jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.0`
 
 #### 使用说明
 
@@ -25,22 +27,20 @@ Java Swing 密码加密器
 *PEncoder使用的是UTF-8编码！
 */
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%    关于运行环境:                                                   %
-%    Windows和Linunx一样,安装JDK或者JRE都行,在Java官网可以下载。         %
-%    当然，附件里也有的。                                              %
-%                                                                  %
-%    关于运行：                                                      %
-%    Windows下，直接双击打开。或者cmd：                                %
-%    java -jar PEncoder.jar                                        %
-%                                                                  %
-%    Linux下，先给予运行权限，在Terminal：                             %
-%    sudo chmod +x PEncoder.jar                                    %
-%    再运行:                                                        %
-%    ./PEncoder.jar                                                %
-%                                                                  %
-%    如果下载的是Jlink版本就无所谓了，直接运行Start脚本即可。              %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+关于运行环境:                                                   
+    Windows和Linunx一样,安装JDK或者JRE都行,在Java官网可以下载。         
+    当然，附件里也有的。                                              
+                                                                 
+关于运行：                                                      
+  Windows下，直接双击打开。或者cmd：                                
+    `java -jar PEncoder.jar`                                        
+                                                                  
+  Linux下，先给予运行权限，在Terminal：                             
+    `sudo chmod +x PEncoder.jar`                                    
+    再运行:                                                        
+    `./PEncoder.jar`                                                
+                                                                  
+  如果下载的是Jlink版本就无所谓了，直接运行Start脚本即可。          
 
 _______________________________________________________________________________________________________________
 ---------------------------------------------------使用方法------------------------------------------------------
@@ -56,10 +56,14 @@ Get Start：
          [一共四列，分别是：平台名称、用户名、密码和备注]
 
 -----------------------------------------------------------------------
+
+```
 腾讯QQ:92463448:1234567890:腾讯QQ
 网易云:Wangyiyun@163.com:wodewangyiyun:邮箱
 无:无:skjbvinewir:手机锁屏密码
 一次性邮箱:sdadsdfgg@af.com:rrrrrrrooo:有效期1年-到2020-03
+```
+
 -----------------------------------------------------------------------
 
     暂时不保存！因为我们的密码还没有加密（现在的密码都是明文密码）！
@@ -86,10 +90,14 @@ Get Start：
     如下图（用加密后的字符串代替原来的明文密码）：
 
 ----------------------------------------------------------------------------------------------------------------
+
+```
 腾讯QQ:92463448:2F24F3CF1AC52B36AED07B7A0E0737AAFA4BD25A5EE07059B451B0F637EDD05D:腾讯QQ
 网易云:Wangyiyun@163.com:C2AA6B8F2AED701672E761563C579BD5EFDD81BAB39F4A91474C5207DA03DFD6:邮箱
 无:无:7BCCAB5BCDF307C3B9E63FCF6F8D76F0F28CD0AF9910FA67AF86CC7906E706D1:手机锁屏密码
 一次性邮箱:sdadsdfgg@af.com:323F8F31F5A764A931C40D4F181E43F35D5B173AB5440B8C85E22D32B643DFF8:有效期1年-到2020-03
+```
+
 ----------------------------------------------------------------------------------------------------------------
 
     用记事本或Gedit编辑后记得保存（UTF-8编码），然后关闭PEncoderDatabasebak文件。
@@ -107,8 +115,12 @@ Get Start：
 下面是生成的PEncoderDatabase文件内容：
 
 ----------------------------------------------------------------------------------------------------------------
+
+```
 闽:::
 D6A4507ABC42ABC1016C080409A278C7356FE289C87A207B263C6882E115F078776F619CE3E158C91A4AB533F6A5549F0EACAEA96D6E170E91AE622039B543A5B511FCC0D341DE4BA80157C7BAFA2FFA99C4F768F2BAC13D81FFDFA170886612772884DD304286926E549E9D2E91DF7D039225464E8C92C092D5D9E43AE45521C2F6A6FA911B3D932719A414B5B1908CAF87EF4618B3E5386CBA2C0C3ECD356616821457DF4F6DBF66EC3DAD17D4BD9C4D9F20A36A4D6483CEB429864E26DA53B66DC6F48713FFAEC4104B02C8E7DB8613BF5C8585DB50405B3E73180ABDEEA5C086815DEE23295530CCC1CA444FFD5B9FACA49ABFFD85DFA674B5AF118D1D88EFAFCEA2E275A6E8921D3AE65678CB7892A37EBBBE344400BF8E71055DFD297F315E917329E9ED0FAA5FE106074B97A78F348178079AB86CA14F7F4D873803F4A84710DFB6FC507AD4CA14C6905035B46DBD0FAC10A30069867CA004EBE4AA362B4870B6D958E82955687A8D87EB71F246392A93BA745D4141066CE149419EC05C543AC479814456B957CB6066A89B76693A0F18EAFE83206E9B4C4404A38D64C15C7D23F0711260444D39D3DD6F3F4F5C00033E05AEDE2F6774A52E9B35F9636D87514D72125723B72E71A83CB06F283486C7B7E28D3FFA4D1739F936C20434E2E31D908633CFEACB8DF6DF5393C8D3FF721A40EE0ECDC5CBD15675ABA6D5944E5A654B5DBF46CF587C24B2E50C6FAE
+```
+
 ----------------------------------------------------------------------------------------------------------------
 
     生成PEncoderDatabase文件后，你就可以删除PEncoderDatabasebak文件了。
@@ -141,10 +153,14 @@ D6A4507ABC42ABC1016C080409A278C7356FE289C87A207B263C6882E115F078776F619CE3E158C9
     比如：我要修改的是QQ密码，把原密码”1234567890“修改成“uuuu”。
 
 ----------------------------------------------------------------------------------------------------------------
+
+```
 腾讯QQ:92463448:2F24F3CF1AC52B36AED07B7A0E0737AAFA4BD25A5EE07059B451B0F637EDD05D:腾讯QQ
 网易云:Wangyiyun@163.com:C2AA6B8F2AED701672E761563C579BD5EFDD81BAB39F4A91474C5207DA03DFD6:邮箱
 无:无:7BCCAB5BCDF307C3B9E63FCF6F8D76F0F28CD0AF9910FA67AF86CC7906E706D1:手机锁屏密码
 一次性邮箱:sdadsdfgg@af.com:323F8F31F5A764A931C40D4F181E43F35D5B173AB5440B8C85E22D32B643DFF8:有效期1年-到2020-03
+```
+
 ----------------------------------------------------------------------------------------------------------------
 
     首先执行加密步骤（见前文），输入之前用于加密的KeyA和KeyB，加密后得到：
@@ -152,10 +168,14 @@ D6A4507ABC42ABC1016C080409A278C7356FE289C87A207B263C6882E115F078776F619CE3E158C9
     替换掉原先的密码位置，得到：
 
 ----------------------------------------------------------------------------------------------------------------
+
+```
 腾讯QQ:92463448:C3A8767CA257691EA3863A7410692D1BB25C4D5F8D76D58A53BE61EC05254817:腾讯QQ
 网易云:Wangyiyun@163.com:C2AA6B8F2AED701672E761563C579BD5EFDD81BAB39F4A91474C5207DA03DFD6:邮箱
 无:无:7BCCAB5BCDF307C3B9E63FCF6F8D76F0F28CD0AF9910FA67AF86CC7906E706D1:手机锁屏密码
 一次性邮箱:sdadsdfgg@af.com:323F8F31F5A764A931C40D4F181E43F35D5B173AB5440B8C85E22D32B643DFF8:有效期1年-到2020-03
+```
+
 ----------------------------------------------------------------------------------------------------------------
 
     保存后，同理，可以编码成PEncoderDatabase文件进行保存。老规矩，保存其一，分开存放。
@@ -203,10 +223,14 @@ KeyB：1433223v
 下面是新生成的PEncoderDatabasebak文件内容：
 
 ----------------------------------------------------------------------------------------------------------------
+
+```
 腾讯QQ:***REMOVED***:FF3FC9A049D8EB7E4D847053BD47D4D0123C156F3B2D83EDF7005DFDF0F65982:腾讯QQ
 网易云:Wangyiyun@163.com:E873BC59E240D5D08EBC5F4640B8A6BEE21PEncoderDatabase4BF117550F316631A123E56CC2F:邮箱
 无:无:091E8083878288B0486860DE35D6A41F0508B53E36186D921925216D7PEncoderDatabase9CA61:手机锁屏密码
 一次性邮箱:sdadsdfgg@af.com:1D561C86A33FF061E23069DFE92957286B01451BC435AFE06BF56B6DC8F90185:有效期1年-到2020-03
+```
+
 ----------------------------------------------------------------------------------------------------------------
 
     接下来你懂的，确认无误就将原来的PEncoderDatabase和PEncoderDatabasebak文件删除。重命名新生成的PEncoderDatabasebakNEW
@@ -232,3 +256,4 @@ KeyB：1433223v
                                                                                       by Ryan 2020-06-20
                                                                                          
 ----------------------------------------------------------------------------------------------------------------
+1. 这里是列表文本
