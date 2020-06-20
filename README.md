@@ -1,4 +1,4 @@
-# PEncoder密码加密器
+# PEncoder密码辅助
 
 #### 介绍
 Java Swing 密码加密器
@@ -15,17 +15,25 @@ Java Swing 密码加密器
 #### 使用说明
 
 关于PEncoder2.0:
-/**
-*PEncoder用于密码加密;
-*PEncoder支持Windows、Linux
-*PEncoder版本:Java8+
-*PEncoder在Windows下要求系统版本在1903以上，即你看到这个文档时，不会乱七八糟的。
-*PEncoderDatabase是PEncoder的非直观数据记录文件，不可直接修改。
-*PEncderBasePEncoderDatabasebak文件是PEncoder的直观数据记录文件。用于用户自行添加、修
-*改密码帐号等信息。格式：“平台名称:用户名:密码:备注”（注意是英文格式的冒号！）
-*使用时请将需要的数据记录文件和PEncoder应用放在同一个目录下。
-*PEncoder使用的是UTF-8编码！
-*/
+
+
+- *PEncoder用于密码加密;
+- *PEncoder支持Windows、Linux
+- *PEncoder版本:Java8+
+- *PEncoder在Windows下要求系统版本在1903（可能是吧？？我猜的）以上，‘CMD’打开看看开头是不是写着
+
+```
+Microsoft Windows [版本 10.0.18363.836] 
+(c) 2019 Microsoft Corporation。保留所有权利。
+```
+
+-  写着2019可以用，写着2018的就用不了，因为格式会乱掉。
+- *PEncoderDatabase是PEncoder的非直观数据记录文件，不可直接修改。
+- *PEncderBasePEncoderDatabasebak文件是PEncoder的直观数据记录文件。用于用户自行添加、修
+- *改密码帐号等信息。格式：“平台名称:用户名:密码:备注”（注意是英文格式的冒号！）
+- *使用时请将需要的数据记录文件和PEncoder应用放在同一个目录下。
+- *PEncoder使用的是UTF-8编码！
+
 
 关于运行环境:                                                   
     Windows和Linunx一样,安装JDK或者JRE都行,在Java官网可以下载。         
