@@ -27,7 +27,7 @@ Microsoft Windows [版本 10.0.18363.836]
 (c) 2019 Microsoft Corporation。保留所有权利。
 ```
 
--  写着2019可以用，写着2018的就用不了，因为格式会乱掉。
+-  写着2019及以上可以用，写着2018的就用不了，因为格式会乱掉。
 - *PEncoderDatabase是PEncoder的非直观数据记录文件，不可直接修改。
 - *PEncoderDatabasebak文件是PEncoder的直观数据记录文件。用于用户自行添加、修
 - *改密码帐号等信息。格式：“平台名称:用户名:密码:备注”（注意是英文格式的冒号！）
@@ -39,16 +39,20 @@ Microsoft Windows [版本 10.0.18363.836]
     Windows和Linunx一样,安装JDK或者JRE都行,在Java官网可以下载。         
     当然，附件里也有的。                                              
                                                                  
-- 关于运行：                                                      
-  Windows下，直接双击打开。或者cmd：                                
-    `java -jar PEncoder.jar`                                        
+- 关于运行：                              
+- 1. 如果下载的是[JAR文件](https://gitee.com/rmshadows/pencoder_cipher_encryptor/attach_files/419285/download)：                        
+ 
+-  Windows下，直接双击打开。或者cmd：                                
+     `java -jar PEncoder.jar`     
+                                   
+   
+- Linux下，先给予运行权限，在Terminal：                             
+      `sudo chmod +x PEncoder.jar`                                    
+-      再运行:                                                        
+      `./PEncoder.jar`
+                                             
                                                                   
-  Linux下，先给予运行权限，在Terminal：                             
-    `sudo chmod +x PEncoder.jar`                                    
-    再运行:                                                        
-    `./PEncoder.jar`                                                
-                                                                  
-  如果下载的是Jlink版本就无所谓了，直接运行Start脚本即可。          
+- 2.   如果下载的是对应平台的Jlink版本（[Windows戳我](https://gitee.com/rmshadows/pencoder_cipher_encryptor/attach_files/419284/download)、[Linux戳我](https://gitee.com/rmshadows/pencoder_cipher_encryptor/attach_files/419286/download)）就无所谓了，直接运行Start脚本即可。          
 
 _______________________________________________________________________________________________________________
 - 使用方法
