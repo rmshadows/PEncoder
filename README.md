@@ -36,8 +36,7 @@ Microsoft Windows [版本 10.0.18363.836]
 
 
 - 关于运行环境:                                                   
-    Windows和Linunx一样,安装JDK或者JRE都行,在Java官网可以下载。         
-    当然，附件里也有的。                                              
+    Windows和Linunx一样,安装JDK或者JRE都行,在Java官网可以下载。                                                     
                                                                  
 - 关于运行：                              
 - 1. 如果下载的是[JAR文件](https://gitee.com/rmshadows/pencoder_cipher_encryptor/attach_files/419285/download)：                        
