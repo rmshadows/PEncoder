@@ -268,9 +268,28 @@ KeyB：1433223v
                                                                                       by Ryan 2020-06-20
                                                                                          
 ----------------------------------------------------------------------------------------------------------------
+
 ### 关于
-    这个嘞，是自己写的第一个Java窗口应用。毕竟咱也不是计算机专业…敲代码为的是方便生活。我密码太多了，全是长密码，一个平台一个不同长密码。我记不住那么多密码，于是我就写了这个小东西辅助我管理密码。因为能力有限（喵喵叹气，咳咳），各位如果想改进下可以自己把源代码拉过去修改，我就不更新啦！如果觉得不好用（那肯定，这么麻烦的东西。市场上那些密码记录软件他不香吗？），也就看看作罢，图个娱乐。
 
-    写这个小东东之前，也用过别人写的小玩意儿。比如加密猫[地址：> https://github.com/Corydonbyte/jiamimao ]。个人觉得还是有点好用的吧？？或许加密猫和Hat.sh[地址：> https://github.com/sh-dv/hat.sh]有点关系(猜的)，因为加密猫加密后的文件头部好像就带有[Hat.sh](https://hat.sh/)的字样，界面也差不多。不管怎样，还是带着一颗感谢的心，毕竟方便了大噶的生活、提升了办公效率，这都是好事儿。
+这个嘞，是自己写的第一个Java窗口应用。毕竟咱也不是计算机专业…敲代码为的是方便生活。我密码太多了，全是长密码，一个平台一个不同长密码。我记不住那么多密码，于是我就写了这个小东西辅助我管理密码。因为能力有限（喵喵叹气，咳咳），各位如果想改进下可以自己把源代码拉过去修改，我就不更新啦！如果觉得不好用（那肯定，这么麻烦的东西。市场上那些密码记录软件他不香吗？），也就看看作罢，图个娱乐。
 
-项目地址：> https://gitee.com/rmshadows/pencoder_cipher_encryptor
+
+写这个小东东之前，也用过别人写的小玩意儿。比如加密猫[项目地址 > https://github.com/Corydonbyte/jiamimao ]。个人觉得还是有点好用的
+吧。或许加密猫和 `Hat.sh` [项目地址 > https://github.com/sh-dv/hat.sh ]有点关系(猜的)，因为加密猫加密后的文件头部好像就带有[Hat.sh](https://hat.sh/)的字样，界面也差不多。不管怎样，还是带着一颗感谢的心，毕竟方便了大噶的生活、提升了办公效率，这都是好事儿。
+
+
+项目地址：> https://gitee.com/rmshadows/pencoder_cipher_encryptor <
+
+### 截屏
+
+![主界面](https://images.gitee.com/uploads/images/2020/0621/125655_a43e35b4_7423713.png "屏幕截图.png")
+![加  密](https://images.gitee.com/uploads/images/2020/0621/125858_2e0485ea_7423713.png "屏幕截图.png")
+![菜 单1](https://images.gitee.com/uploads/images/2020/0621/130007_ca1d2e18_7423713.png "屏幕截图.png")
+![菜 单2](https://images.gitee.com/uploads/images/2020/0621/130109_e3d66c0f_7423713.png "屏幕截图.png")
+![导 出1](https://images.gitee.com/uploads/images/2020/0621/130152_221e070d_7423713.png "屏幕截图.png")
+![导 出2](https://images.gitee.com/uploads/images/2020/0621/130512_96972d62_7423713.png "屏幕截图.png")
+![换密钥](https://images.gitee.com/uploads/images/2020/0621/130229_a963bd4d_7423713.png "屏幕截图.png")
+
+### 许可
+
+[LICENSE](https://gitee.com/rmshadows/pencoder_cipher_encryptor/blob/master/LICENSE)
