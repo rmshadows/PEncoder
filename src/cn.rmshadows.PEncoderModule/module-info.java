@@ -1,7 +1,6 @@
 /**
- * @name PEncoder模块
+ * PEncoder模块-密码管理辅助模块
  * @author jessie
- * @function 加密密码
  */
 module cn.rmshadows.PEncoderModule {
 	requires java.datatransfer;
