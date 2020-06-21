@@ -29,7 +29,7 @@ Microsoft Windows [版本 10.0.18363.836]
 
 -  写着2019可以用，写着2018的就用不了，因为格式会乱掉。
 - *PEncoderDatabase是PEncoder的非直观数据记录文件，不可直接修改。
-- *PEncderBasePEncoderDatabasebak文件是PEncoder的直观数据记录文件。用于用户自行添加、修
+- *PEncoderDatabasebak文件是PEncoder的直观数据记录文件。用于用户自行添加、修
 - *改密码帐号等信息。格式：“平台名称:用户名:密码:备注”（注意是英文格式的冒号！）
 - *使用时请将需要的数据记录文件和PEncoder应用放在同一个目录下。
 - *PEncoder使用的是UTF-8编码！
