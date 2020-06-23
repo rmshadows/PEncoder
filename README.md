@@ -1,7 +1,68 @@
+### Info
+Name:PEncoder
+Version：v2.0 
+Function:Help you manage your password.Based on java,using Swing-GUI;
+Environment:Java 11 (Java8 is OK,delete module-info.java),!!Win10 1903 Above!!
+Platform:Windows & Linux
+
+
+### Compile
+Compile:
+`javac --module-source-path src -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8`
+
+Run:
+`java -p bin -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`
+
+Jlink Pack:
+`jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.0`
+
+
+！！This program may not work correctly on the version of win10 18XX.！！What cause this problem maybe notepad.exe.
+Open CMD ,take a look at the first few lines, if it looks like this: 
+```
+Microsoft Windows [版本 10.0.18363.836] 
+(c) 2019 Microsoft Corporation。保留所有权利。
+```
+Good,you'll download archive file in RELEASE ,unzip it then run the 'Start' script to start the application.
+1.If you download jar file:
+
+- Windows:Double click or in command lines type `java -jar PEncoder.jar`
+- Linux: `chmod +x PEncoder.jar` then `./PEncoder.jar` or `java -jar PEncoder.jar`
+
+2.If you download Jlink file,it's easy: Choosing the correct archive for your platform.Then upzip it,and double click at the "Start" script to launcher the application.
+
+### Get start:
+
+!!
+
+Before we getting start,you need to know:
+
+-PEncoderDatabasebak : PEncoderDatabasebak file is a passwords record file.It stored password by clear text.All the practice(adding password ,export as csv file ,change password...) are based on it.Hereinafter we call it bak file.
+
+-PEncoderDatabase : PEncoderDatabase file is a coded passwords stored file.It derived from bak file. DO NOT MODIFY THIS FILE ! ! Otherwise all the password stored on the PEncoderDatabase file will be lost ! !Hereinafter we call it DB file.
+
+!!
+
+
+- First time use:Launcher the application,select "-菜单栏(menu bar)-文件(files)-新建(New PEncoderDatabasebak file)".
+
+Then you'll see a new 'PEncoderDatabasebak' file has created.Click "-编辑-(Edit)" to modify the bak file ,it'll automatically opened with 'notepad.exe' on Windows or 'Gedit' on Linux ,therefore may sure you had installed them.If you dont have them ,there is a way to solve this:
+
+1.Modifying soure code ,change to the application you using to edit 'txt' file.
+
+2.Find the bak file in your file explorer and open it with your favorite text editor.
+
+We go on:
+
+
+
+
+
 # PEncoder密码辅助
 
 #### 介绍
 Java Swing 密码辅助工具
+Help you manage your password
 
 使用略不方便，代码略乱，见谅。
 
@@ -16,27 +77,29 @@ Java Swing 密码辅助工具
 
 关于PEncoder2.0:
 
-
 - *PEncoder用于密码加密;
 - *PEncoder支持Windows、Linux
 - *PEncoder版本:Java8+
 - *PEncoder在Windows下要求系统版本在1903（可能是吧？？我猜的）以上，‘CMD’打开看看开头是不是写着
 
+！！This program may not work correctly on the version of win10 18XX.！！What cause this problem maybe notepad.exe.
+Open CMD ,take a look at the first few lines, if it looks like this: 
 ```
 Microsoft Windows [版本 10.0.18363.836] 
 (c) 2019 Microsoft Corporation。保留所有权利。
 ```
+Good,you'll download archive file in RELEASE ,unzip it then run the 'Start' script to start the application.
 
 -  写着2019及以上可以用，写着2018的就用不了，因为格式会乱掉。
-- *PEncoderDatabase是PEncoder的非直观数据记录文件，不可直接修改。
-- *PEncoderDatabasebak文件是PEncoder的直观数据记录文件。用于用户自行添加、修
-- *改密码帐号等信息。格式：“平台名称:用户名:密码:备注”（注意是英文格式的冒号！）
+
+- *PEncoderDatabase是PEncoder的非直观数据记录文件，不可直接修改。(PEncoderDatabase file is PEncoder's a coded passwords record file.DO NOT  MODIFY THIS FILE ! ! Otherwise all the password stored on the PEncoderDatabase file will be lost ! !)
+- *PEncoderDatabasebak文件是PEncoder的直观数据记录文件。用于用户自行添加、修改密码帐号等信息。格式：“平台名称:用户名:密码:备注”（注意是英文格式的冒号！）(PEncoderDatabasebak file is PEncoder's a  passwords record file.)
 - *使用时请将需要的数据记录文件和PEncoder应用放在同一个目录下。
 - *PEncoder使用的是UTF-8编码！
 
 
 - 关于运行环境:                                                   
-    Windows和Linunx一样,安装JDK或者JRE都行,在Java官网可以下载。                                                     
+    Windows和Linunx一样,安装JDK或者JRE都行,在Java官网可以下载。
                                                                  
 - 关于运行：                              
 - 1. 如果下载的是[JAR文件](https://gitee.com/rmshadows/pencoder_cipher_encryptor/attach_files/419285/download)：                        
