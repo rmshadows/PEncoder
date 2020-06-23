@@ -1,9 +1,14 @@
 ### Info
-Name:PEncoder
-Version：v2.0 
-Function:Help you manage your password.Based on java,using Swing-GUI;
-Environment:Java 11 (Java8 is OK,delete module-info.java),!!Win10 1903 Above!!
-Platform:Windows & Linux
+
+Name : PEncoder
+
+Version ：v2.0 
+
+Function : Help you manage your password.Based on java,using Swing-GUI;
+
+Environment : Java 11 (Java8 is OK,delete module-info.java),!!Win10 1903 Above!!
+
+Platform : Windows & Linux
 
 
 ### Compile
@@ -33,7 +38,7 @@ Good,you'll download archive file in RELEASE ,unzip it then run the 'Start' scri
 
 ### Get start:
 
-!!
+!----------------------------------------!
 
 Before we getting start,you need to know:
 
@@ -41,7 +46,7 @@ Before we getting start,you need to know:
 
 -PEncoderDatabase : PEncoderDatabase file is a coded passwords stored file.It derived from bak file. DO NOT MODIFY THIS FILE ! ! Otherwise all the password stored on the PEncoderDatabase file will be lost ! !Hereinafter we call it DB file.
 
-!!
+!----------------------------------------!
 
 
 - First time use:Launcher the application,select "-菜单栏(menu bar)-文件(files)-新建(New PEncoderDatabasebak file)".
@@ -52,10 +57,37 @@ Then you'll see a new 'PEncoderDatabasebak' file has created.Click "-编辑-(Edi
 
 2.Find the bak file in your file explorer and open it with your favorite text editor.
 
-We go on:
+-We go on:
 
+Open the new bak file,delete the first line (使用前请删除此行，注意英文冒号的使用位置！格式示例：) .Follow the example in the second line:软件平台(Forum):账号名(User name):密码(Password):备注(Remarks).Using colon as the delimiter, each row is divided into four columns (therefore colons are not allowed in these three fields -- Forum ,UserName ,Remarks.【Ps:There will be no semicolon ":" in the encrypted message ,so you don't need to worry about the Password field.】Exceptions: Semicolon in Chinese (：) is OK in the three field mentioned above ,but not allowed in the Password field).Different colon:English colon(:),Chinese colon(：) ,others:such as en_us(,.:;'"\[]?!),cn_zh(，。：；‘’“”、【】？！).
 
+for example:
 
+Correct: `Github.com:username:password:my github account.site：www.github.com.` 
+
+As you see ,I the final colon is Chinese colon,so that it's correct.If you can't type a Chinese colon "："，just replace the English colon ":" in the 'Forum','User Name','Remarks' field with other symbol.
+
+Wrong:`Github:username:password:https://www.github.com` The final ":" in the 'Remarks' field will confuse PEncoder and make it wrong ! 
+
+### How to encrypt password ?
+First of all ,setup your KeyA & KeyB ,both two keys are using to encryption.
+
+The most important thing is **DO REMEMBER BOTH KAYS!** or you will lost all you encrypted password !!
+
+It's what you are using to decrypt and get the clear text of your password. 
+Now Let's say that I am going to encrypt and stored information showed below on my win10 laptop :
+|Forum|Username|Password|Remarks|
+|--|--|--|--|
+|Github|Tom|Tom'sGH|site:www.github.com|
+|Facebook|Kitty|pwd:666|Null|
+|GoogleDrive|Woops@gmail.com|www;;???|phone:+86-15525837262|
+Let's make the KeyA:'shadows@shadows' and KeyB:'Google0234' ,typed into the corresponding text boxes.
+
+Then click "-编辑-(Edit)" it will open with notepad :
+
+```
+
+```
 
 
 # PEncoder密码辅助
