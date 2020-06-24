@@ -108,9 +108,11 @@ Github:Tom:Tom'sGH:site-www.github.com
 Facebook:Kitty:pwd:666:Null
 GoogleDrive:Woops@gmail.com:www;;???:phone=+86-15525837262
 ```
+
 ![03](https://images.gitee.com/uploads/images/2020/0623/214659_e555b266_7423713.png "屏幕截图.png")
 
 You don't need to save the file right now,because our password hasn't encrypted yet.To encrypt our password,shear the clear password text into "输入(Input)" text area,click "运行(Run)" .Now you can see the encrypted password in the "输出(Output)" area ,click "复制(Copy)" to copy to your clipboard，then 'Ctrl+v' paste it into bak file .When all the clear password text has been encrypted ,you can save the bak file now.
+
 ![04](https://images.gitee.com/uploads/images/2020/0623/224107_f843fbf4_7423713.png "屏幕截图.png")
 ![05](https://images.gitee.com/uploads/images/2020/0623/224730_769689f6_7423713.png "屏幕截图.png")
 
