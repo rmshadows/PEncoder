@@ -1,5 +1,6 @@
 /**
  * PEncoder模块-密码管理辅助模块
+ * 当前版本：2.1
  * @author jessie
  */
 module cn.rmshadows.PEncoderModule {

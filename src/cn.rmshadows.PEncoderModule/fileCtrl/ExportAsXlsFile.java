@@ -96,7 +96,12 @@ public class ExportAsXlsFile {
 			csvFile.createNewFile();
 			if (fs.equals("\\")) {//Windows下用GB2312.GBK可以兼容GB2312
 				// GB2312使正确读取分隔符","
-				csvWtriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(csvFile), "GB2312"), 1024);
+				try {
+					csvWtriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(csvFile), "GBK"), 1024);
+				}catch (Exception egbk) {
+					System.out.println("GBK出错，转UTF-8");
+					csvWtriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(csvFile), "UTF-8"), 1024);
+				}
 			}
 			else if (fs.equals("/")){
 				// UTF-8使正确读取分隔符","
