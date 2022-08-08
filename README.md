@@ -1,6 +1,6 @@
 # PEncoder密码辅助
 
-- 当前版本：2.1
+- 当前版本：2.2
 
 #### 介绍
 
@@ -13,7 +13,7 @@ Java Swing 密码辅助工具
 
 1.  编译：`javac --module-source-path src -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8`
 2.  运行：`java -p bin -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`
-3.  打包：`jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.1`
+3.  打包：`jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.0`
 
 #### 使用说明
 
@@ -292,6 +292,11 @@ KeyB：1433223v
 ![导 出1](https://images.gitee.com/uploads/images/2020/0621/130152_221e070d_7423713.png "屏幕截图.png")
 ![导 出2](https://images.gitee.com/uploads/images/2020/0621/130512_96972d62_7423713.png "屏幕截图.png")
 ![换密钥](https://images.gitee.com/uploads/images/2020/0621/130229_a963bd4d_7423713.png "屏幕截图.png")
+
+### 更新日志 - Update Log
+
+- 2022.08.08——2.2
+  - 修复了DB文件跨平台编码错误问题
 
 ### 许可
 

@@ -1,4 +1,4 @@
-### PEncoder2.0
+### PEncoder2.1
 
 [中文使用文档戳我](https://gitee.com/rmshadows/pencoder_cipher_encryptor/blob/master/README.md)
 
@@ -27,7 +27,7 @@ Run:
 `java -p bin -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`
 
 Jlink Pack:
-`jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.0`
+`jlink --launcher launcher=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.1`
 
 
 ！！This program may not work correctly on the version of win10 18XX.！！What cause this problem maybe notepad.exe.
