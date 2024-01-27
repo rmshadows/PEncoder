@@ -91,10 +91,10 @@ public class ReadPEncoderDB {
 		}
 		String encoding = "UTF-8";
 		InputStreamReader read = new InputStreamReader(new FileInputStream(dbFilePath), encoding);// 考虑到编码格式
-		BufferedReader bufferedReader = new BufferedReader(read);
-		String lineTxt = null;
-		String zh = "闽:::";
-		try {
+		try (read) {
+			BufferedReader bufferedReader = new BufferedReader(read);
+			String lineTxt = null;
+			String zh = "闽:::";
 			while ((lineTxt = bufferedReader.readLine()) != null) {
 				if (lineTxt.contentEquals(zh)) {
 //					System.out.println(lineTxt.contentEquals(zh));
@@ -109,8 +109,7 @@ public class ReadPEncoderDB {
 		} catch (Exception e) {
 			System.out.println("文件读取出错!请注意格式及编码。");
 		} finally {
-			read.close();
-//			System.out.println(readResult);
+			//			System.out.println(readResult);
 			System.out.println("读取DB文件完毕。");
 		}
 		readResult = readResult.substring(0, readResult.length() - 1);
@@ -143,9 +142,9 @@ public class ReadPEncoderDB {
 		}
 		String encoding = "UTF-8";
 		InputStreamReader read = new InputStreamReader(new FileInputStream(dbFilePath), encoding);// 考虑到编码格式
-		BufferedReader bufferedReader = new BufferedReader(read);
-		String lineTxt = null;
-		try {
+		try (read) {
+			BufferedReader bufferedReader = new BufferedReader(read);
+			String lineTxt = null;
 			while ((lineTxt = bufferedReader.readLine()) != null) {
 				readResult = readResult + lineTxt + "\n";
 			}
@@ -153,7 +152,6 @@ public class ReadPEncoderDB {
 			// TODO: handle exception
 			System.out.println("文件读取出错!请注意格式及编码。");
 		} finally {
-			read.close();
 			System.out.println("读取bak文件完毕。");
 		}
 		String zh = "闽:::\n";

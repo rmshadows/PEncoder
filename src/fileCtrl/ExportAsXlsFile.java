@@ -71,10 +71,10 @@ public class ExportAsXlsFile {
 		Object[] head = { "平台名称", "账户名称", "用户密码","信息备注" };
 		List<Object> headList = Arrays.asList(head);
 		//数据
-		List<List<Object>> dataList = new ArrayList<List<Object>>();
+		List<List<Object>> dataList = new ArrayList<>();
 		List<Object> rowList = null;
 		for (int i = 0; i < a.size(); i++) {
-			rowList = new ArrayList<Object>();
+			rowList = new ArrayList<>();
 			rowList.add(a.get(i));
 			rowList.add(b.get(i));
 			rowList.add(c.get(i));
@@ -113,11 +113,9 @@ public class ExportAsXlsFile {
 //			ServletOutputStream out = response.getOutputStream();
 //			csvWtriter = new BufferedWriter(new OutputStreamWriter(out, "GB2312"), 1024);
 			int num = headList.size() / 2;
-			StringBuffer buffer = new StringBuffer();
-			for (int i = 0; i < num; i++) {
-				buffer.append(" ,");
-			}
-			csvWtriter.write(buffer.toString() + fileName + buffer.toString());
+			StringBuilder buffer = new StringBuilder();
+			buffer.append(" ,".repeat(num));
+			csvWtriter.write(buffer + fileName + buffer);
 			csvWtriter.newLine();
 			// 写入文件头部
 			writeRow(headList, csvWtriter);
@@ -146,8 +144,7 @@ public class ExportAsXlsFile {
 	 */
 	private static void writeRow(List<Object> row, BufferedWriter csvWriter) throws IOException {
 		for (Object data : row) {
-			StringBuffer sb = new StringBuffer();
-			String rowStr = sb.append("\"").append(data).append("\",").toString();
+			String rowStr = "\"" + data + "\",";
 			csvWriter.write(rowStr);
 		}
 		csvWriter.newLine();

@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="PEncoder:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/PEncoder_jar</output-path>
+    <root id="archive" name="PEncoder.jar">
+      <element id="module-output" name="PEncoder" />
+    </root>
+  </artifact>
+</component>

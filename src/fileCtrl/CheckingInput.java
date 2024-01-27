@@ -2,6 +2,8 @@ package fileCtrl;
 
 import appCtrl.MainProgram;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * 类名：一些辅助检查手段
  * @author Jessie
@@ -20,8 +22,7 @@ public class CheckingInput {
 				return null;
 			}
 			else {
-				byte[] byteArray = str.getBytes("UTF-8");
-				return byteArray;
+				return str.getBytes(StandardCharsets.UTF_8);
 			}
 		}catch (Exception e) {
 			System.out.println("String转byte数组:stringToByteArray error.");
@@ -41,7 +42,7 @@ public class CheckingInput {
 			return null;
 		}
 		try {
-			str = new String(byteArray, "UTF-8");
+			str = new String(byteArray, StandardCharsets.UTF_8);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -56,7 +57,7 @@ public class CheckingInput {
 	 * @return boolean 是否合法
 	 */
 	public static boolean inputFilter(String in , boolean isDecodeOn) {
-		if ((in.length() > 30)&&(isDecodeOn == false)){
+		if ((in.length() > 30)&&(!isDecodeOn)){
 			System.out.print("输入过长！暂不支持超长密码。");
 			return false;
 		}
@@ -85,22 +86,17 @@ public class CheckingInput {
 	public static String pwdAppend(String in) {
 		int strLength = 30;
 		int strLen = in.length();
-		if(inputFilter(in, false)==true){
+		if(inputFilter(in, false)){
 			if (in.length()<=30) {
 				if (in.contains(";")) {
 					in = in.replaceAll(";", "；");
 				}
-				else {
-					
-				}
+				StringBuilder inBuilder = new StringBuilder(in);
 				while (strLen < strLength) {
-//					System.out.println(in);
-					StringBuffer sb = new StringBuffer();
-//					sb.append("0").append(in);// 左补0
-					sb.append(in).append(";");//右补‘;’
-					in = sb.toString();
-					strLen = in.length();
+					inBuilder.append(";");//右补‘;’
+					strLen = inBuilder.length();
 				}
+				in = inBuilder.toString();
 				return in;
 			}
 			else {
@@ -108,7 +104,7 @@ public class CheckingInput {
 				return null; 
 			}
 		}
-		else if (inputFilter(in, false)==false) {
+		else if (!inputFilter(in, false)) {
 			System.out.println("最长支持16位明文密码。");
 			return null;
 		}
@@ -127,15 +123,19 @@ public class CheckingInput {
 	public static String keyAppend(String in) {
 		int strLength = 16;
 		int strLen = in.length();
-		if(inputFilter(in, false)==true){
+		if(inputFilter(in, false)){
 			if (in.length()<=16) {
+				StringBuilder inBuilder = new StringBuilder(in);
 				while (strLen < strLength) {
-					StringBuffer sb = new StringBuffer();
-//					sb.append("0").append(in);// 左补0
-					sb.append(in).append(";");//右补0
-					in = sb.toString();
-					strLen = in.length();
+//					StringBuffer sb = new StringBuffer();
+////					sb.append("0").append(in);// 左补0
+//					sb.append(in).append(";");//右补0
+//					in = sb.toString();
+//					strLen = in.length();
+					inBuilder.append(";");//右补0
+					strLen = inBuilder.length();
 				}
+				in = inBuilder.toString();
 				return in;
 			}
 			else {
@@ -143,7 +143,7 @@ public class CheckingInput {
 				return null;
 			}
 		}
-		else if (inputFilter(in, false)==false) {
+		else if (!inputFilter(in, false)) {
 			System.out.println("最长支持16位密钥。");
 			return null;
 		}

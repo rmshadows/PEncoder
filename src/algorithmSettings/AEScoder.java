@@ -91,16 +91,6 @@ public class AEScoder implements IfPwdCoder {
 			System.out.println("加密完成。");
 			// 5 返回密文字符集
 			return cipherTextBytes;
-		} catch (NoSuchPaddingException e) {
-//			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-//			e.printStackTrace();
-		} catch (BadPaddingException e) {
-//			e.printStackTrace();
-		} catch (IllegalBlockSizeException e) {
-//			e.printStackTrace();
-		} catch (InvalidKeyException e) {
-//			e.printStackTrace();
 		} catch (Exception e) {
 //			e.printStackTrace();
 		}
@@ -244,11 +234,11 @@ public class AEScoder implements IfPwdCoder {
 	 * @return String 十六进制字符串
 	 */
 	private static String byte2hex(byte[] bytes) { // 一个字节的数，
-		StringBuffer sb = new StringBuffer(bytes.length * 2);
+		StringBuilder sb = new StringBuilder(bytes.length * 2);
 		String tmp = "";
-		for (int n = 0; n < bytes.length; n++) {
+		for (byte aByte : bytes) {
 			// 整数转成十六进制表示
-			tmp = (java.lang.Integer.toHexString(bytes[n] & 0XFF));
+			tmp = (Integer.toHexString(aByte & 0XFF));
 			if (tmp.length() == 1) {
 				sb.append("0");
 			}

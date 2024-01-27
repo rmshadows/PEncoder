@@ -5,7 +5,7 @@ package appCtrl;
  */
 class SimulatedActivity implements Runnable {
 	private volatile int current;
-	 	private int amount;
+	 	private final int amount;
 	public SimulatedActivity(int paramInt) {
 		this.current = 0;
 		this.amount = paramInt;
@@ -20,7 +20,7 @@ class SimulatedActivity implements Runnable {
 		while (this.current < this.amount) {
 			try {
 				Thread.sleep(50L);
-			} catch (InterruptedException interruptedException) {}
+			} catch (InterruptedException ignored) {}
 			this.current++;
 		}
 	}

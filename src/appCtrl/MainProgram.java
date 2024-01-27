@@ -1,53 +1,25 @@
 package appCtrl;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.swing.BorderFactory;
-import javax.swing.ButtonGroup;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JPopupMenu;
-import javax.swing.JRadioButton;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.ProgressMonitor;
-import javax.swing.Timer;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.PlainDocument;
-
 import algorithmSettings.AEScoder;
 import fileCtrl.CheckingInput;
 import fileCtrl.ExportAsXlsFile;
 import fileCtrl.ReadPEncoderDB;
 import iface.IfPwdCoder;
+
+import javax.swing.*;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.PlainDocument;
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 import static java.lang.String.format;
 
@@ -62,47 +34,47 @@ public class MainProgram {
 	public final static String VERSION="2.2";
 	public final static String UPDATE="2022-08-08";
 	// 创建及设置窗口
-	private JFrame mainWindow = new JFrame(format("PEncoder v%s -- by Jessie", VERSION));// 标题
+	private final JFrame mainWindow = new JFrame(format("PEncoder v%s -- by Jessie", VERSION));// 标题
 	// 界面按钮
-	private JButton run = new JButton("运行");
-	private JButton copy = new JButton("复制");
-	private JButton edit = new JButton("编辑");
+	private final JButton run = new JButton("运行");
+	private final JButton copy = new JButton("复制");
+	private final JButton edit = new JButton("编辑");
 
 //	菜单栏
-	private JMenuBar menubar = new JMenuBar();
-	private JMenu options = new JMenu("选项");
-	private JMenu file = new JMenu("文件");
-	private JMenu help = new JMenu("帮助");
-	private JMenuItem popM = new JMenuItem("What do you want?");
+	private final JMenuBar menubar = new JMenuBar();
+	private final JMenu options = new JMenu("选项");
+	private final JMenu file = new JMenu("文件");
+	private final JMenu help = new JMenu("帮助");
+	private final JMenuItem popM = new JMenuItem("What do you want?");
 //	右击菜单
-	private JPopupMenu pop = new JPopupMenu();
+	private final JPopupMenu pop = new JPopupMenu();
 //	菜单项目
-	private JMenuItem changeKeys = new JMenuItem("更换密钥");
-	private JMenuItem top = new JMenuItem("窗口置顶/取消置顶");
-	private JMenuItem manual = new JMenuItem("如何使用");
-	private JMenuItem about = new JMenuItem("关于");
-	private JMenuItem export = new JMenuItem("导出");
-	private JMenuItem exit = new JMenuItem("退出");
-	private JMenuItem EN = new JMenuItem("编码DBbak文件");
-	private JMenuItem DE = new JMenuItem("解码DB文件");
-	private JMenuItem newfile = new JMenuItem("新建DBbak文件");
+	private final JMenuItem changeKeys = new JMenuItem("更换密钥");
+	private final JMenuItem top = new JMenuItem("窗口置顶/取消置顶");
+	private final JMenuItem manual = new JMenuItem("如何使用");
+	private final JMenuItem about = new JMenuItem("关于");
+	private final JMenuItem export = new JMenuItem("导出");
+	private final JMenuItem exit = new JMenuItem("退出");
+	private final JMenuItem EN = new JMenuItem("编码DBbak文件");
+	private final JMenuItem DE = new JMenuItem("解码DB文件");
+	private final JMenuItem newfile = new JMenuItem("新建DBbak文件");
 
 //	定义单选按钮，初始处于加密
-	private JRadioButton encoderButton = new JRadioButton("加密", true);
-	private JRadioButton decoderButton = new JRadioButton("解密", false);
-	private JRadioButton isPwdInCleartext = new JRadioButton("隐藏", false);
+	private final JRadioButton encoderButton = new JRadioButton("加密", true);
+	private final JRadioButton decoderButton = new JRadioButton("解密", false);
+	private final JRadioButton isPwdInCleartext = new JRadioButton("隐藏", false);
 //	按钮组合
-	private ButtonGroup modeSelect = new ButtonGroup();
+	private final ButtonGroup modeSelect = new ButtonGroup();
 
 //	定义一个38列的单行文本域
 	public static JPasswordField keyA = new JPasswordField();// 密钥
 	public static JPasswordField keyB = new JPasswordField();// vi偏移量
-	private JTextArea inputArea = new JTextArea(4, 38);
-	private JTextArea outputArea = new JTextArea(4, 38);
-	private JTextArea console = new JTextArea(10, 38);
+	private final JTextArea inputArea = new JTextArea(4, 38);
+	private final JTextArea outputArea = new JTextArea(4, 38);
+	private final JTextArea console = new JTextArea(10, 38);
 
 	private static final String INFO_OUTPUTAREA = "———————运行结果将显示在这里———————";
-	private static char defaultChar = '●';
+	private static final char defaultChar = '●';
 	public static boolean isItSemicolon = false;
 	private static String cKeyInput = null;
 
@@ -115,7 +87,7 @@ public class MainProgram {
 		try {
 			String fileSeparator = File.separator;
 			File notepad = new File("C:\\WINDOWS\\system32\\notepad.exe");
-			if (notepad.exists() || fileSeparator == "\\") {
+			if (notepad.exists() || Objects.equals(fileSeparator, "\\")) {
 				Runtime.getRuntime().exec("C:\\WINDOWS\\system32\\notepad.exe .\\PEncoderDatabasebak");
 			} else {
 				Runtime.getRuntime().exec("gedit ./PEncoderDatabasebak");// .waitFor()
@@ -146,9 +118,7 @@ public class MainProgram {
 				}
 			}
 		}
-		if (ret.equals(text)) {
-
-		} else {
+		if (!ret.equals(text)) {
 			Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 			// 封装文本内容
 			Transferable trans = new StringSelection(text);
@@ -165,13 +135,13 @@ public class MainProgram {
 	private void outputUI() {
 		// 捕获控制台输出到GUI界面上
 		OutputStream textAreaStream = new OutputStream() {
-			public void write(int b) throws IOException {
+			public void write(int b) {
 				console.append(String.valueOf((char) b));
 			}
-			public void write(byte b[]) throws IOException {
+			public void write(byte[] b) {
 				console.append(new String(b));
 			}
-			public void write(byte b[], int off, int len) throws IOException {
+			public void write(byte[] b, int off, int len) {
 				console.append(new String(b, off, len));
 			}
 		};
@@ -232,8 +202,8 @@ public class MainProgram {
 		List<String> b = new ArrayList<>();
 		List<String> c = new ArrayList<>();
 		List<String> d = new ArrayList<>();
-		String readResult = "";
-		String lineTxt = null;
+		StringBuilder readResult = new StringBuilder();
+		String lineTxt;
 		String bakSep = ":";
 		String fs = File.separator;
 		String bakpath = "." + fs + "PEncoderDatabasebak";
@@ -255,7 +225,7 @@ public class MainProgram {
 				System.out.println("文件不存在");
 			} else {
 				System.out.println("为以防万一，原bak文件不会被覆盖，请手动删除谢谢。");
-				InputStreamReader read = new InputStreamReader(new FileInputStream(bakpath), "UTF-8");// 考虑到编码格式
+				InputStreamReader read = new InputStreamReader(new FileInputStream(bakpath), StandardCharsets.UTF_8);// 考虑到编码格式
 				BufferedReader bufferedReader = new BufferedReader(read);
 				while ((lineTxt = bufferedReader.readLine()) != null) {
 					String[] split = lineTxt.split(bakSep);
@@ -280,7 +250,7 @@ public class MainProgram {
 					IfPwdCoder ipc = new AEScoder();
 					String x = ipc.decoder(c.get(i));// 解密
 					x = AEScoder.ckeyEncode(x, key[0], key[1]);// 再加密
-					c.set(i, new String(x));
+					c.set(i, x);
 				}
 				for (int i = 0; i < a.size(); i++) {
 					String aa = a.get(i);
@@ -288,10 +258,10 @@ public class MainProgram {
 					String cc = c.get(i);
 					String dd = d.get(i);
 //					System.out.println(aa);
-					readResult = readResult + aa + ":" + bb + ":" + cc + ":" + dd + "\n";
+					readResult.append(aa).append(":").append(bb).append(":").append(cc).append(":").append(dd).append("\n");
 				}
 //				System.out.println(readResult);
-				ReadPEncoderDB.writeToText(readResult, bakpath + "NEW");
+				ReadPEncoderDB.writeToText(readResult.toString(), bakpath + "NEW");
 				bufferedReader.close();
 			}
 		} catch (Exception e1) {
@@ -304,7 +274,6 @@ public class MainProgram {
 	 * 界面初始化
 	 * 主程序界面初始化
 	 */
-	@SuppressWarnings("serial")
 	public void mainWindowInit() {
 		// 设置字体
 		Font f = new Font("宋体", Font.PLAIN, 19);
@@ -452,223 +421,167 @@ public class MainProgram {
 
 //		设置事件-----------------------------------------------------------------
 //		按钮事件=================================================================
-		edit.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					openDBFile();
-				} catch (InterruptedException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+		edit.addActionListener(e -> {
+			try {
+				openDBFile();
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
 			}
 		});
-		copy.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				copyToClickboard(outputArea.getText().toString());
-			}
-		});
-		run.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					outputArea.setText(null);
-					if (encoderButton.isSelected()) {
-						String a = CheckingInput.pwdAppend(inputArea.getText());
-						IfPwdCoder encoding = new AEScoder();
-						String x = encoding.encode(a);
-						if (isItSemicolon) {
-							outputArea.setText(null);
-						} else {
-							outputArea.setText(x);
-						}
-//						outputArea.setText(encoding.encode(a));
-						System.out.println("——加密完成——");
-					} else if (decoderButton.isSelected()) {
-						String b = inputArea.getText();
-						IfPwdCoder decoding = new AEScoder();
-						String x = decoding.decoder(b);
-						x = x.replaceAll(";", "");
-						if(x.contains("；")) {
-							x = x.replaceAll("；", ";");
-						}
-						outputArea.setText(x);
-						System.out.println("——解密完成——");
+		copy.addActionListener(e -> copyToClickboard(outputArea.getText()));
+		run.addActionListener(e -> {
+			try {
+				outputArea.setText(null);
+				if (encoderButton.isSelected()) {
+					String a = CheckingInput.pwdAppend(inputArea.getText());
+					IfPwdCoder encoding = new AEScoder();
+					String x = encoding.encode(a);
+					if (isItSemicolon) {
+						outputArea.setText(null);
 					} else {
-						System.out.println("运行出错。");
+						outputArea.setText(x);
 					}
-				} catch (Exception e3) {
-					// TODO: handle exception
+//						outputArea.setText(encoding.encode(a));
+					System.out.println("——加密完成——");
+				} else if (decoderButton.isSelected()) {
+					String b = inputArea.getText();
+					IfPwdCoder decoding = new AEScoder();
+					String x = decoding.decoder(b);
+					x = x.replaceAll(";", "");
+					if(x.contains("；")) {
+						x = x.replaceAll("；", ";");
+					}
+					outputArea.setText(x);
+					System.out.println("——解密完成——");
+				} else {
+					System.out.println("运行出错。");
 				}
+			} catch (Exception e3) {
+				// TODO: handle exception
 			}
 		});
-		isPwdInCleartext.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (isPwdInCleartext.isSelected()) {
-					keyA.setEchoChar(defaultChar);
-					keyB.setEchoChar(defaultChar);
-				} else if (!isPwdInCleartext.isSelected()) {
-					keyA.setEchoChar((char) 0);
-					keyB.setEchoChar((char) 0);
-				} else {
-					System.out.println("Radio button error.");
-				}
-//				System.out.println(isPwdInCleartext.isSelected());
+		isPwdInCleartext.addActionListener(e -> {
+			if (isPwdInCleartext.isSelected()) {
+				keyA.setEchoChar(defaultChar);
+				keyB.setEchoChar(defaultChar);
+			} else if (!isPwdInCleartext.isSelected()) {
+				keyA.setEchoChar((char) 0);
+				keyB.setEchoChar((char) 0);
+			} else {
+				System.out.println("Radio button error.");
 			}
+//				System.out.println(isPwdInCleartext.isSelected());
 		});
 
 //		菜单事件
 		outputArea.setComponentPopupMenu(pop);
-		popM.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				new TimePro().init();
-			}
-		});
+		popM.addActionListener(e -> new TimePro().init());
 
-		newfile.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					System.out.println("正在新建bak文件……");
-					ReadPEncoderDB.newDBbakFile();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+		newfile.addActionListener(e -> {
+			try {
+				System.out.println("正在新建bak文件……");
+				ReadPEncoderDB.newDBbakFile();
+			} catch (IOException e1) {
+				e1.printStackTrace();
 			}
 		});
-		EN.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					System.out.println("正在编码bak文件……");
-					ReadPEncoderDB.encodeDB();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
+		EN.addActionListener(e -> {
+			try {
+				System.out.println("正在编码bak文件……");
+				ReadPEncoderDB.encodeDB();
+			} catch (IOException e1) {
 //					e1.printStackTrace();
-				}
 			}
 		});
-		DE.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					System.out.println("正在解码DB文件……");
-					ReadPEncoderDB.decodeDB();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
+		DE.addActionListener(e -> {
+			try {
+				System.out.println("正在解码DB文件……");
+				ReadPEncoderDB.decodeDB();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
 //					e1.printStackTrace();
-				}
 			}
 		});
-		exit.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				boolean t = mainWindow.isAlwaysOnTop();
-				if(t) {
-					mainWindow.setAlwaysOnTop(false);
-				}
-				int a = JOptionPane.showConfirmDialog(null, "确认退出?", "WARNING", JOptionPane.YES_NO_OPTION,
-						JOptionPane.WARNING_MESSAGE);
+		exit.addActionListener(e -> {
+			boolean t = mainWindow.isAlwaysOnTop();
+			if(t) {
+				mainWindow.setAlwaysOnTop(false);
+			}
+			int a = JOptionPane.showConfirmDialog(null, "确认退出?", "WARNING", JOptionPane.YES_NO_OPTION,
+					JOptionPane.WARNING_MESSAGE);
 //				System.out.println(a);
-				if (a == 0) {
-					System.exit(0);
-				} else {
-					System.out.println("返回主界面");
-				}
-				if(t) {
-					mainWindow.setAlwaysOnTop(true);
-				}
+			if (a == 0) {
+				System.exit(0);
+			} else {
+				System.out.println("返回主界面");
+			}
+			if(t) {
+				mainWindow.setAlwaysOnTop(true);
 			}
 		});
 		
-		export.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				boolean t = mainWindow.isAlwaysOnTop();
-				if(t) {
-					mainWindow.setAlwaysOnTop(false);
-				}
-				Object[] possibleValues = { "密码密文导出", "密码明文导出" };
-				try {
-					Object selectedValue = JOptionPane.showInputDialog(null, "导出前请检查bak文件。", "以何种方式导出？",
-							JOptionPane.INFORMATION_MESSAGE, null, possibleValues, possibleValues[0]);
-					if (selectedValue.equals(possibleValues[0])) {
-						ExportAsXlsFile.createCSV(false);
+		export.addActionListener(e -> {
+			boolean t = mainWindow.isAlwaysOnTop();
+			if(t) {
+				mainWindow.setAlwaysOnTop(false);
+			}
+			Object[] possibleValues = { "密码密文导出", "密码明文导出" };
+			try {
+				Object selectedValue = JOptionPane.showInputDialog(null, "导出前请检查bak文件。", "以何种方式导出？",
+						JOptionPane.INFORMATION_MESSAGE, null, possibleValues, possibleValues[0]);
+				if (selectedValue.equals(possibleValues[0])) {
+					ExportAsXlsFile.createCSV(false);
 //						System.out.println(selectedValue.equals(possibleValues[0]));
-					} else if (selectedValue.equals(possibleValues[1])) {
-						ExportAsXlsFile.createCSV(true);
-					} else {
-						System.out.println("ERROR!");
-						return;
-					}
-				} catch (Exception e1) {
+				} else if (selectedValue.equals(possibleValues[1])) {
+					ExportAsXlsFile.createCSV(true);
+				} else {
+					System.out.println("ERROR!");
+					return;
+				}
+			} catch (Exception e1) {
 //					e1.printStackTrace();
-					System.out.println("CANCEL");
-				}
-				finally{
-					if(t) {
-						mainWindow.setAlwaysOnTop(true);
-					}
-				}
+				System.out.println("CANCEL");
 			}
-		});
-		top.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if(!mainWindow.isAlwaysOnTop()) {
-					mainWindow.setAlwaysOnTop(true);
-				}
-				else {
-					mainWindow.setAlwaysOnTop(false);
-				}
-			}
-		});
-		changeKeys.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				boolean t = mainWindow.isAlwaysOnTop();
-				if(t) {
-					mainWindow.setAlwaysOnTop(false);
-				}
-				cKeyInput = JOptionPane.showInputDialog("请输入KeyA和KeyB，用“/”隔开。e.g.:1234/4321");
-				ChangingKey();
+			finally{
 				if(t) {
 					mainWindow.setAlwaysOnTop(true);
 				}
+			}
+		});
+		top.addActionListener(e -> mainWindow.setAlwaysOnTop(!mainWindow.isAlwaysOnTop()));
+		changeKeys.addActionListener(e -> {
+			boolean t = mainWindow.isAlwaysOnTop();
+			if(t) {
+				mainWindow.setAlwaysOnTop(false);
+			}
+			cKeyInput = JOptionPane.showInputDialog("请输入KeyA和KeyB，用“/”隔开。e.g.:1234/4321");
+			ChangingKey();
+			if(t) {
+				mainWindow.setAlwaysOnTop(true);
+			}
 //				System.out.println(cKeyInput);
-			}
 		});
 		
-		manual.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				boolean t = mainWindow.isAlwaysOnTop();
-				if(t) {
-					mainWindow.setAlwaysOnTop(false);
-				}
-				String a = "具体使用方法请查阅附带的README.md文件\n按键说明：\n新建：新建bak文件。      编码：将bak文件转DB文件\n解码：将DB文件转bak文件  退出：退出程序\n导出：导出Excel表格      改密：修改加密密钥\n帮助：本对话框           关于：部分信息";
-				JOptionPane.showMessageDialog(null, a, "帮助", JOptionPane.INFORMATION_MESSAGE);
-				if(t) {
-					mainWindow.setAlwaysOnTop(true);
-				}
+		manual.addActionListener(e -> {
+			boolean t = mainWindow.isAlwaysOnTop();
+			if(t) {
+				mainWindow.setAlwaysOnTop(false);
+			}
+			String a = "具体使用方法请查阅附带的README.md文件\n按键说明：\n新建：新建bak文件。      编码：将bak文件转DB文件\n解码：将DB文件转bak文件  退出：退出程序\n导出：导出Excel表格      改密：修改加密密钥\n帮助：本对话框           关于：部分信息";
+			JOptionPane.showMessageDialog(null, a, "帮助", JOptionPane.INFORMATION_MESSAGE);
+			if(t) {
+				mainWindow.setAlwaysOnTop(true);
 			}
 		});
-		about.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				boolean t = mainWindow.isAlwaysOnTop();
-				if(t) {
-					mainWindow.setAlwaysOnTop(false);
-				}
-				String a = format("名称：PEncoder密碼加密器v%s \n作者：Ryan\n日期：%s", VERSION, UPDATE);
-				JOptionPane.showMessageDialog(null, a, "关于", JOptionPane.INFORMATION_MESSAGE);
-				if(t) {
-					mainWindow.setAlwaysOnTop(true);
-				}
+		about.addActionListener(e -> {
+			boolean t = mainWindow.isAlwaysOnTop();
+			if(t) {
+				mainWindow.setAlwaysOnTop(false);
+			}
+			String a = format("名称：PEncoder密碼加密器v%s \n作者：Ryan\n日期：%s", VERSION, UPDATE);
+			JOptionPane.showMessageDialog(null, a, "关于", JOptionPane.INFORMATION_MESSAGE);
+			if(t) {
+				mainWindow.setAlwaysOnTop(true);
 			}
 		});
 
@@ -732,10 +645,8 @@ public class MainProgram {
 			try {
 				UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 			} catch (ClassNotFoundException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			} catch (InstantiationException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			} catch (IllegalAccessException e1) {
 				// TODO Auto-generated catch block
@@ -744,8 +655,6 @@ public class MainProgram {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
-		} else {
-			
 		}
 	}
 }

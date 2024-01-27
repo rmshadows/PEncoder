@@ -15,10 +15,6 @@ public class PEncoderGUILauncher {
 	 * @param args 略
 	 */
 	public static void main(String[] args) {
-		javax.swing.SwingUtilities.invokeLater(new Runnable() {
-			public void run(){
-				new MainProgram().mainWindowInit();
-			}
-		});
+		javax.swing.SwingUtilities.invokeLater(() -> new MainProgram().mainWindowInit());
 	}
 }
