@@ -27,10 +27,10 @@ jobs:
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@v1
         with:
-          java-version: '25'
+          java-version: '17'
           distribution: 'graalvm-community'
-          components: 'native-image'
-          cache: 'maven'
+          # native-image 自 GraalVM JDK 17 起已内置，无需 components
+          # 本项目无 pom.xml，不要使用 cache: 'maven'
 
       - name: Compile module
         run: |
