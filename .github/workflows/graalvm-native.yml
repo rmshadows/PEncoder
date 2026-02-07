@@ -44,13 +44,36 @@ jobs:
           name: pencoder-jar
           path: target/pencoder.jar
 
-  # 各平台构建 native 可执行文件（根据手动选择的 platform 动态决定矩阵内容）
+  # 根据手动选择的 platform 输出要构建的平台列表（JSON）
+  set-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.out.outputs.include }}
+    steps:
+      - id: out
+        run: |
+          case "${{ inputs.platform }}" in
+            all)
+              echo 'include=[{"os":"ubuntu-22.04","artifact_name":"PEncoder-linux-x64"},{"os":"windows-latest","artifact_name":"PEncoder-windows-x64"},{"os":"macos-latest","artifact_name":"PEncoder-macos-aarch64"}]' >> $GITHUB_OUTPUT
+              ;;
+            linux)
+              echo 'include=[{"os":"ubuntu-22.04","artifact_name":"PEncoder-linux-x64"}]' >> $GITHUB_OUTPUT
+              ;;
+            windows)
+              echo 'include=[{"os":"windows-latest","artifact_name":"PEncoder-windows-x64"}]' >> $GITHUB_OUTPUT
+              ;;
+            macos)
+              echo 'include=[{"os":"macos-latest","artifact_name":"PEncoder-macos-aarch64"}]' >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+  # 各平台构建 native 可执行文件
   build-native:
-    needs: build-jar
+    needs: [build-jar, set-matrix]
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ inputs.platform == 'all' && fromJson('[{"os":"ubuntu-22.04","artifact_name":"PEncoder-linux-x64"},{"os":"windows-latest","artifact_name":"PEncoder-windows-x64"},{"os":"macos-latest","artifact_name":"PEncoder-macos-aarch64"}]') || (inputs.platform == 'linux' && fromJson('[{"os":"ubuntu-22.04","artifact_name":"PEncoder-linux-x64"}]') || (inputs.platform == 'windows' && fromJson('[{"os":"windows-latest","artifact_name":"PEncoder-windows-x64"}]') || fromJson('[{"os":"macos-latest","artifact_name":"PEncoder-macos-aarch64"}]')) }}
+        include: ${{ fromJson(needs.set-matrix.outputs.include) }}
 
     runs-on: ${{ matrix.os }}
 
