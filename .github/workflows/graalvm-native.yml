@@ -4,6 +4,17 @@ name: Native Image Build
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: "目标平台（all = 三个系统都生成）"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - linux
+          - windows
+          - macos
 
 env:
   JAVA_VERSION: "17"
@@ -33,19 +44,23 @@ jobs:
           name: pencoder-jar
           path: target/pencoder.jar
 
-  # 各平台构建 native 可执行文件
+  # 各平台构建 native 可执行文件（根据手动选择的 platform 只跑对应矩阵项）
   build-native:
     needs: build-jar
+    if: inputs.platform == 'all' || inputs.platform == matrix.platform_key
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-22.04
             artifact_name: PEncoder-linux-x64
+            platform_key: linux
           - os: windows-latest
             artifact_name: PEncoder-windows-x64
+            platform_key: windows
           - os: macos-latest
             artifact_name: PEncoder-macos-aarch64
+            platform_key: macos
 
     runs-on: ${{ matrix.os }}
 
@@ -81,7 +96,8 @@ jobs:
             -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher \
             -o PEncoder \
             --no-fallback \
-            -Djava.awt.headless=false
+            -Djava.awt.headless=false \
+            -H:IncludeResources='appCtrl/.*\\.properties' -H:IncludeResources='.*Messages_.*\\.properties'
         shell: bash
 
       - name: Collect artifact (Windows)
