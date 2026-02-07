@@ -83,7 +83,8 @@ public final class ExportAsXlsFile {
 		if (parent != null && !parent.exists()) {
 			parent.mkdirs();
 		}
-		String charset = File.separator.equals("\\") ? "GBK" : StandardCharsets.UTF_8.name();
+		// 统一使用 UTF-8，避免 Windows 下 GraalVM 原生镜像未包含 GBK 导致 UnsupportedEncodingException
+		String charset = StandardCharsets.UTF_8.name();
 		try {
 			csvFile.createNewFile();
 		} catch (IOException e) {
