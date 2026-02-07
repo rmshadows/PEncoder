@@ -1,4 +1,5 @@
-# 使用 GraalVM 为 Windows / Linux / macOS 构建原生可执行文件（手动触发）
+# 使用 Liberica Native Image Kit 为 Windows / Linux / macOS 构建原生可执行文件（手动触发）
+# 使用 Liberica NIK 而非 GraalVM Community，因其对 AWT/Swing 支持完整，可避免 "no awt in java.library.path"
 name: GraalVM Native Build
 
 on:
@@ -24,13 +25,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up GraalVM
+      - name: Install Linux dependencies (AWT/X11 for native-image)
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxtst-dev libxi-dev libxrender-dev libxext-dev libxrandr-dev libfreetype6-dev libfontconfig1-dev
+        shell: bash
+
+      - name: Set up Liberica Native Image Kit
         uses: graalvm/setup-graalvm@v1
         with:
           java-version: '17'
-          distribution: 'graalvm-community'
-          # native-image 自 GraalVM JDK 17 起已内置，无需 components
-          # 本项目无 pom.xml，不要使用 cache: 'maven'
+          distribution: 'liberica'
+          # Liberica NIK 支持 AWT/Swing，避免 "no awt in java.library.path"
+          # 本项目无 pom.xml/gradle，不设置 cache
 
       - name: Compile module
         shell: bash
@@ -45,7 +53,8 @@ jobs:
         run: |
           native-image --module-path bin \
             -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher \
-            -o PEncoder --no-fallback
+            -o PEncoder --no-fallback \
+            -Djava.awt.headless=false
         shell: bash
 
       - name: Collect artifact (Windows)
