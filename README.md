@@ -18,7 +18,7 @@ Java Swing 密码辅助工具
 2.  **运行**：`java -p target/pencoder.jar -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`，或直接 `java -jar target/pencoder.jar`
 3.  **jlink 自定义运行时**（可选）：先 `mvn package -DskipTests`，再  
     `jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path target/pencoder.jar --add-modules cn.rmshadows.PEncoderModule --output PEncoder-runtime`
-4.  **GraalVM 原生可执行文件**：在 GitHub 仓库中打开 Actions → 选择 “GraalVM Native Build” → “Run workflow” 手动触发，可为 Windows / Linux / macOS 生成原生可执行文件（使用 Liberica NIK）。**Linux/macOS** 因 AWT 需依赖 JDK 原生库，产物内带 `lib/` 与启动脚本：请用 **`./run.sh`** 启动（勿直接运行 `./PEncoder`），否则可能报 “no awt in java.library.path”。Windows 可直接运行 `PEncoder.exe` 或 `run.bat`。
+4.  **GraalVM 原生可执行文件**：在 GitHub 仓库中打开 Actions → 选择 “GraalVM Native Build” → “Run workflow” 手动触发，可为 Windows / Linux（x64 与 arm64）/ macOS 生成原生可执行文件（使用 Liberica NIK）。**Linux/macOS** 因 AWT 需依赖 JDK 原生库，产物内带 `lib/` 与启动脚本：请用 **`./run.sh`** 启动（勿直接运行 `./PEncoder`），否则可能报 “no awt in java.library.path”。Windows 可直接运行 `PEncoder.exe` 或 `run.bat`。若你使用 CI 未覆盖的 Linux 架构（如 ppc64le、loongarch 等），可在本机安装 GraalVM 或 Liberica NIK 后，编辑项目根目录下的 **`build-native-linux.sh`** 填写 `GRAALVM_HOME` 等变量，执行 `./build-native-linux.sh` 在本地生成可执行文件。
 
 #### 使用说明
 

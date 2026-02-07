@@ -88,10 +88,10 @@ jobs:
         run: |
           case "${{ inputs.platform }}" in
             all)
-              echo 'include=[{"os":"ubuntu-22.04","artifact_name":"PEncoder-linux-x64"},{"os":"windows-latest","artifact_name":"PEncoder-windows-x64"},{"os":"macos-latest","artifact_name":"PEncoder-macos-aarch64"}]' >> $GITHUB_OUTPUT
+              echo 'include=[{"os":"ubuntu-22.04","artifact_name":"PEncoder-linux-x64"},{"os":"ubuntu-22.04-arm","artifact_name":"PEncoder-linux-aarch64"},{"os":"windows-latest","artifact_name":"PEncoder-windows-x64"},{"os":"macos-latest","artifact_name":"PEncoder-macos-aarch64"}]' >> $GITHUB_OUTPUT
               ;;
             linux)
-              echo 'include=[{"os":"ubuntu-22.04","artifact_name":"PEncoder-linux-x64"}]' >> $GITHUB_OUTPUT
+              echo 'include=[{"os":"ubuntu-22.04","artifact_name":"PEncoder-linux-x64"},{"os":"ubuntu-22.04-arm","artifact_name":"PEncoder-linux-aarch64"}]' >> $GITHUB_OUTPUT
               ;;
             windows)
               echo 'include=[{"os":"windows-latest","artifact_name":"PEncoder-windows-x64"}]' >> $GITHUB_OUTPUT
@@ -125,7 +125,7 @@ jobs:
 
       # Linux 上 native-image 链接 AWT 需要 X11 等开发库，否则构建可能失败或运行缺库。
       - name: Install Linux dependencies (AWT/X11)
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -170,7 +170,7 @@ jobs:
       # Linux：native-image 会把 libawt.so、libawt_xawt.so 等输出到当前目录，必须把这些 .so 打进 dist/lib/；
       # 用户运行时用 run.sh 设置 LD_LIBRARY_PATH，否则会报 "no awt in java.library.path"。
       - name: Collect artifact (Linux)
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.os == 'ubuntu-22.04' || matrix.os == 'ubuntu-22.04-arm'
         shell: bash
         run: |
           mkdir -p dist dist/lib
