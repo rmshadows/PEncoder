@@ -5,6 +5,7 @@ import algorithmSettings.CryptoException;
 import fileCtrl.CheckingInput;
 import fileCtrl.ExportAsXlsFile;
 import fileCtrl.ReadPEncoderDB;
+import fileCtrl.TargetMismatchException;
 import iface.IfPwdCoder;
 
 import javax.swing.*;
@@ -246,6 +247,24 @@ public class MainProgram {
 				backupToBakFolderIfEnabled(DB_FILENAME);
 				ReadPEncoderDB.encodeDB();
 				System.out.println(msg("dialog.exit_encode_ok"));
+			} catch (TargetMismatchException e) {
+				int overwrite = JOptionPane.showConfirmDialog(mainWindow, e.getMessage(), msg("dialog.warning"), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+				if (overwrite == JOptionPane.YES_OPTION) {
+					try {
+						ReadPEncoderDB.encodeDB(true);
+						System.out.println(msg("dialog.exit_encode_ok"));
+					} catch (Exception e2) {
+						String errMsg = e2.getMessage() != null ? e2.getMessage() : e2.getClass().getSimpleName();
+						int exitAnyway = JOptionPane.showConfirmDialog(mainWindow, format(msg("dialog.exit_encode_fail"), errMsg), msg("dialog.error"), JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE);
+						if (exitAnyway != JOptionPane.YES_OPTION) {
+							if (wasOnTop) mainWindow.setAlwaysOnTop(true);
+							return;
+						}
+					}
+				} else {
+					if (wasOnTop) mainWindow.setAlwaysOnTop(true);
+					return;
+				}
 			} catch (Exception e) {
 				String errMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 				int exitAnyway = JOptionPane.showConfirmDialog(mainWindow,
@@ -427,6 +446,15 @@ public class MainProgram {
 			backupToBakFolderIfEnabled(DB_FILENAME);
 			System.out.println("正在解码DB文件……");
 			ReadPEncoderDB.decodeDB();
+		} catch (TargetMismatchException e1) {
+			int overwrite = JOptionPane.showConfirmDialog(mainWindow, e1.getMessage(), msg("dialog.warning"), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+			if (overwrite == JOptionPane.YES_OPTION) {
+				try {
+					ReadPEncoderDB.decodeDB(true);
+				} catch (Exception e2) {
+					JOptionPane.showMessageDialog(mainWindow, e2.getMessage(), msg("dialog.error"), JOptionPane.ERROR_MESSAGE);
+				}
+			}
 		} catch (CryptoException e1) {
 			System.out.println("解码失败: " + e1.getMessage());
 			JOptionPane.showMessageDialog(mainWindow, "解码失败: " + e1.getMessage(), msg("dialog.error"), JOptionPane.ERROR_MESSAGE);
@@ -615,20 +643,31 @@ public class MainProgram {
 					new InputStreamReader(new FileInputStream(bakpath), StandardCharsets.UTF_8))) {
 				String line;
 				while ((line = reader.readLine()) != null) {
-					String sep = line.contains(ReadPEncoderDB.BAK_DELIMITER) ? ReadPEncoderDB.BAK_DELIMITER : ":";
-					String[] split = line.split(java.util.regex.Pattern.quote(sep));
-					if (split.length >= 4) {
-						platforms.add(split[0]);
-						accounts.add(split[1]);
-						passwords.add(split[2]);
-						remarks.add(split[3]);
+					String[] parsed = ReadPEncoderDB.parseBakLine(line);
+					if (parsed != null) {
+						platforms.add(parsed[0]);
+						accounts.add(parsed[1]);
+						passwords.add(parsed[2]);
+						remarks.add(parsed[3]);
 					}
 				}
 			}
 			IfPwdCoder coder = new AEScoder();
 			for (int i = 0; i < passwords.size(); i++) {
-				String plain = coder.decode(passwords.get(i));
-				passwords.set(i, AEScoder.ckeyEncode(plain, newKeyA, newKeyB));
+				String cipher = passwords.get(i);
+				try {
+					String plain = coder.decode(cipher);
+					passwords.set(i, AEScoder.ckeyEncode(plain, newKeyA, newKeyB));
+				} catch (CryptoException e) {
+					int row = i + 1;
+					String cipherPreview = cipher == null ? "(null)" : (cipher.length() > 60 ? cipher.substring(0, 60) + "…" : cipher);
+					String detail = String.format(
+							"第 %d 行解密失败\n平台：%s\n账号：%s\n错误：%s\n密文前 60 字：%s",
+							row, platforms.get(i), accounts.get(i), e.getMessage(), cipherPreview);
+					System.err.println("更换密钥 - " + detail);
+					JOptionPane.showMessageDialog(null, detail, "更换密钥失败（第 " + row + " 行）", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
 			}
 			StringBuilder out = new StringBuilder();
 			for (int i = 0; i < platforms.size(); i++) {
@@ -640,7 +679,9 @@ public class MainProgram {
 			System.out.println("更换密钥失败: " + e1.getMessage());
 			JOptionPane.showMessageDialog(null, "更换密钥失败: " + e1.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
 		} catch (Exception e1) {
-			System.out.println("操作失败: " + e1.getMessage());
+			String msg = e1.getMessage() != null ? e1.getMessage() : e1.getClass().getName();
+			System.out.println("操作失败: " + msg);
+			JOptionPane.showMessageDialog(null, "操作失败: " + msg, "错误", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
@@ -842,6 +883,15 @@ public class MainProgram {
 				backupToBakFolderIfEnabled(DB_FILENAME);
 				System.out.println("正在编码bak文件……");
 				ReadPEncoderDB.encodeDB();
+			} catch (TargetMismatchException e1) {
+				int overwrite = JOptionPane.showConfirmDialog(mainWindow, e1.getMessage(), msg("dialog.warning"), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+				if (overwrite == JOptionPane.YES_OPTION) {
+					try {
+						ReadPEncoderDB.encodeDB(true);
+					} catch (Exception e2) {
+						JOptionPane.showMessageDialog(mainWindow, e2.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+					}
+				}
 			} catch (CryptoException e1) {
 				System.out.println("编码失败: " + e1.getMessage());
 				JOptionPane.showMessageDialog(mainWindow, "编码失败: " + e1.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);

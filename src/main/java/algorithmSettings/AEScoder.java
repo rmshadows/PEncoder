@@ -17,7 +17,7 @@ import iface.IfPwdCoder;
 /**
  * AES-CBC 加解密实现。
  * <ul>
- *   <li><b>新格式 (v2)</b>：使用 PBKDF2 从 KeyA+KeyB 派生密钥，每次加密使用随机 IV，密文为 {@code "v2:" + hex(IV) + hex(密文)}。</li>
+ *   <li><b>新格式 (v2)</b>：使用 PBKDF2 从 KeyA+KeyB 派生密钥，每次加密使用随机 IV，密文为 {@code "v2⸎" + hex(IV) + hex(密文)}。</li>
  *   <li><b>旧格式</b>：KeyA 补齐/截断为密钥，KeyB 为 IV，密文为 hex(密文)。解密时自动识别并兼容。</li>
  * </ul>
  *
@@ -31,8 +31,8 @@ public class AEScoder implements IfPwdCoder {
 	private static final int KEY_SIZE_BYTES = 16;
 	private static final int IV_SIZE_BYTES = 16;
 
-	/** 新格式密文前缀，用于识别并兼容旧数据 */
-	private static final String V2_PREFIX = "v2:";
+	/** 新格式密文前缀（与 bak 列分隔符区分） */
+	private static final String V2_PREFIX = "v2⸎";
 
 	/** PBKDF2 迭代次数，提高穷举成本 */
 	private static final int PBKDF2_ITERATIONS = 50_000;
@@ -103,7 +103,7 @@ public class AEScoder implements IfPwdCoder {
 	}
 
 	/**
-	 * 新格式加密：随机 IV + PBKDF2 密钥，返回 "v2:" + hex(IV) + hex(密文)。
+	 * 新格式加密：随机 IV + PBKDF2 密钥，返回 "v2⸎" + hex(IV) + hex(密文)。
 	 */
 	private static String encryptV2(byte[] plainBytes, String keyA, String keyB) throws CryptoException {
 		byte[] keyBytes = deriveKey(keyA, keyB);
@@ -122,9 +122,12 @@ public class AEScoder implements IfPwdCoder {
 	}
 
 	/**
-	 * 新格式解密：解析 "v2:" + hex(IV) + hex(密文)，用 PBKDF2 密钥解密。
+	 * 新格式解密：解析 "v2⸎" + hex(IV) + hex(密文)，用 PBKDF2 密钥解密。
 	 */
 	private static byte[] decryptV2(String cipherHex, String keyA, String keyB) throws CryptoException {
+		if (!cipherHex.startsWith(V2_PREFIX)) {
+			throw new CryptoException("v2 密文前缀无效");
+		}
 		String hex = cipherHex.substring(V2_PREFIX.length());
 		if (hex.length() < IV_SIZE_BYTES * 2) {
 			throw new CryptoException("v2 密文过短");
@@ -198,7 +201,7 @@ public class AEScoder implements IfPwdCoder {
 		if (plainBytes == null) {
 			throw new CryptoException("明文转字节失败");
 		}
-		// 若旧密文带 "v2:"，先解密再加密会得到明文；这里 clearText 在调用方已是解密后的明文
+		// clearText 在调用方已是解密后的明文，此处用新密钥加密为 v2⸎ 格式
 		return encryptV2(plainBytes, newKeyA, newKeyB);
 	}
 

@@ -50,27 +50,24 @@ public final class ExportAsXlsFile {
 				new InputStreamReader(new FileInputStream(BAK_PATH), StandardCharsets.UTF_8))) {
 			String line;
 			while ((line = reader.readLine()) != null) {
-				String sep = line.contains(ReadPEncoderDB.BAK_DELIMITER) ? ReadPEncoderDB.BAK_DELIMITER : ":";
-				String[] split = line.split(java.util.regex.Pattern.quote(sep));
-				if (split.length < 4) {
-					continue;
-				}
-				platforms.add(split[0]);
-				accounts.add(split[1]);
+				String[] parsed = ReadPEncoderDB.parseBakLine(line);
+				if (parsed == null) continue;
+				platforms.add(parsed[0]);
+				accounts.add(parsed[1]);
 				if (isClearText) {
 					IfPwdCoder ipc = new AEScoder();
 					try {
-						String plain = ipc.decode(split[2]);
-						plain = plain != null ? plain.replaceAll(";", "") : split[2];
+						String plain = ipc.decode(parsed[2]);
+						plain = plain != null ? plain.replaceAll(";", "") : parsed[2];
 						passwords.add(plain);
 					} catch (CryptoException ex) {
 						System.out.println("解密行失败，跳过: " + ex.getMessage());
-						passwords.add(split[2]);
+						passwords.add(parsed[2]);
 					}
 				} else {
-					passwords.add(split[2]);
+					passwords.add(parsed[2]);
 				}
-				remarks.add(split[3]);
+				remarks.add(parsed[3]);
 			}
 		} catch (Exception e1) {
 			System.out.println("ERROR. Check format!");
