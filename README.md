@@ -14,7 +14,7 @@ Java Swing 密码辅助工具
 1.  编译：`javac --module-source-path src -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8`
 2.  运行：`java -p bin -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`
 3.  打包：`jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.0`
-4.  **GraalVM 原生可执行文件**：在 GitHub 仓库中打开 Actions → 选择 “GraalVM Native Build” → “Run workflow” 手动触发，可为 Windows / Linux / macOS 生成无需 JRE 的原生可执行文件（使用 GraalVM 17）。
+4.  **GraalVM 原生可执行文件**：在 GitHub 仓库中打开 Actions → 选择 “GraalVM Native Build” → “Run workflow” 手动触发，可为 Windows / Linux / macOS 生成原生可执行文件（使用 Liberica NIK）。**Linux/macOS** 因 AWT 需依赖 JDK 原生库，产物内带 `lib/` 与启动脚本：请用 **`./run.sh`** 启动（勿直接运行 `./PEncoder`），否则可能报 “no awt in java.library.path”。Windows 可直接运行 `PEncoder.exe` 或 `run.bat`。
 
 #### 使用说明
 

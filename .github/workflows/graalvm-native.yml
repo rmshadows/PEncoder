@@ -59,18 +59,53 @@ jobs:
 
       - name: Collect artifact (Windows)
         if: matrix.os == 'windows-latest'
+        shell: bash
         run: |
           mkdir -p dist
           cp PEncoder.exe dist/
-        shell: bash
+          # 可选：复制 JDK 的 AWT 等 DLL，与 exe 同目录便于加载
+          if [ -d "$JAVA_HOME/bin" ]; then
+            mkdir -p dist/bin
+            cp "$JAVA_HOME/bin"/*.dll dist/bin/ 2>/dev/null || true
+          fi
+          (cd dist && (echo '@echo off'; echo 'set "PATH=%~dp0bin;%PATH%"'; echo '"%~dp0PEncoder.exe" %*') > run.bat)
 
-      - name: Collect artifact (Linux/macOS)
-        if: matrix.os != 'windows-latest'
+      - name: Collect artifact (Linux) + bundle AWT libs
+        if: matrix.os == 'ubuntu-22.04'
+        shell: bash
         run: |
-          mkdir -p dist
+          mkdir -p dist dist/lib
           cp PEncoder dist/
           chmod +x dist/PEncoder
+          # 将 JDK 中的 AWT 等 .so 打包，运行时通过 LD_LIBRARY_PATH 加载，解决 "no awt in java.library.path"
+          for d in "$JAVA_HOME/lib" "$JAVA_HOME/lib/amd64" "$JAVA_HOME/lib/x86_64-linux-gnu"; do
+            [ -d "$d" ] && cp -n "$d"/*.so dist/lib/ 2>/dev/null || true
+          done
+          cat > dist/run.sh << 'RUN'
+          #!/bin/bash
+          SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+          export LD_LIBRARY_PATH="${SCRIPT_DIR}/lib:${LD_LIBRARY_PATH}"
+          exec "${SCRIPT_DIR}/PEncoder" "$@"
+          RUN
+          chmod +x dist/run.sh
+
+      - name: Collect artifact (macOS) + bundle AWT libs
+        if: matrix.os == 'macos-latest'
         shell: bash
+        run: |
+          mkdir -p dist dist/lib
+          cp PEncoder dist/
+          chmod +x dist/PEncoder
+          for d in "$JAVA_HOME/lib" "$JAVA_HOME/lib/jli" "$JAVA_HOME/jre/lib" "$JAVA_HOME/jre/lib/jli"; do
+            [ -d "$d" ] && cp -n "$d"/*.dylib dist/lib/ 2>/dev/null || true
+          done
+          cat > dist/run.sh << 'RUN'
+          #!/bin/bash
+          SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+          export DYLD_LIBRARY_PATH="${SCRIPT_DIR}/lib:${DYLD_LIBRARY_PATH}"
+          exec "${SCRIPT_DIR}/PEncoder" "$@"
+          RUN
+          chmod +x dist/run.sh
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
