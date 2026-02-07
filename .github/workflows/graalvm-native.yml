@@ -33,9 +33,13 @@ jobs:
           # 本项目无 pom.xml，不要使用 cache: 'maven'
 
       - name: Compile module
+        shell: bash
         run: |
+          # javac --module-source-path 要求目录名为模块名，本项目是扁平 src/，先拼出合规结构
+          mkdir -p src-module/cn.rmshadows.PEncoderModule
+          cp -r src/* src-module/cn.rmshadows.PEncoderModule/
           mkdir -p bin
-          javac --module-source-path src -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8
+          javac --module-source-path src-module -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8
 
       - name: Build native image
         run: |
