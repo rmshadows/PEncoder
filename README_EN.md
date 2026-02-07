@@ -68,28 +68,18 @@ Good,you'll download archive file in RELEASE ,unzip it then run the 'Start' scri
 
 ### Migration from v2.2 to v2.3
 
-If you used v2.2, read this before upgrading so you can migrate without losing data.
+Recommended steps to upgrade from 2.2 to 2.3:
 
-1. **Data and files are fully compatible**
-   - Old bak files using colon `:` as the delimiter still work. You do **not** need to change them. v2.3 reads both `:` and `|` formats.
-   - New bak files use the symbol `⫸` as the default delimiter, with a copy-paste line for it. You can keep using `:` when editing by hand if you prefer.
+1. In **v2.2**: Use **File → Decode DB file** to decode **PEncoderDatabase** into **PEncoderDatabasebak** (plain bak).
+2. Run **v2.3**, put **PEncoderDatabasebak** in the same folder as the app, and enter your **v2.2 KeyA and KeyB** in the UI.
+3. Click **Options → Change keys**, enter new keys **1234/1234** (temporary), confirm. This creates **PEncoderDatabasebakNEW**.
+4. Rename **PEncoderDatabasebakNEW** to **PEncoderDatabasebak** (or replace the original), then click **Change keys** again and enter **your own new password** (format: KeyA/KeyB), confirm.
+5. Finally use **File → Encode bak file** to produce the new **PEncoderDatabase**.
 
-2. **If you decoded DB → bak in v2.2 and noticed missing characters**
-   - v2.2 had a bug: decoding DB to bak dropped the first 4 characters of the decrypted content.
-   - **Fix**: With v2.3, put your **PEncoderDatabase** in the same folder as the app, then use **File → Decode DB file** to decode again. You will get the full bak; save it and re-encode to DB if needed.
-
-3. **Backup behavior changed**
-   - v2.2: When “auto-encode on exit” ran, it created `PEncoderDatabasebak.backup` and `PEncoderDatabase.backup` in the **same directory**.
-   - v2.3: No more `.backup` files in the same directory. There is an option **“Auto-backup to bak folder before encode/decode”**. When enabled, backups go into a **bak** folder with timestamped names (e.g. `bak/PEncoderDatabasebak_2026-02-07_14-30-00`). Enable it in **Options** if you want automatic backups.
-
-4. **Shortcuts changed**
-   - Toggle Encrypt/Decrypt: **Ctrl+M** → **Alt+S** (avoids conflict with text fields).
-   - New: **Alt+X** Execute, **Alt+C** Copy output, **Ctrl+Q** Exit, **Ctrl+E** Edit bak. **Ctrl+D** Decode is unchanged.
-
-5. **Runtime**
-   - Requires **JDK 25** (same as v2.3 build).
+**Note**: Before changing keys, ensure the bak format is correct (four columns: platform⫸account⫸password⫸remarks, or colon-separated for old format). If a row fails, the app will show the row number, platform, and first 60 chars of the cipher for debugging.
 
 !----------------------------------------!
+
 
 Before we getting start, you need to know:
 
