@@ -103,9 +103,8 @@ jobs:
           mkdir -p dist dist/lib
           cp PEncoder dist/
           chmod +x dist/PEncoder
-          for d in "$JAVA_HOME/lib" "$JAVA_HOME/lib/amd64" "$JAVA_HOME/lib/x86_64-linux-gnu"; do
-            [ -d "$d" ] && cp -n "$d"/*.so dist/lib/ 2>/dev/null || true
-          done
+          # native-image 在当前目录生成 libawt.so、libawt_xawt.so 等，必须打包这些而非 JAVA_HOME 里的
+          cp -n *.so dist/lib/ 2>/dev/null || true
           cat > dist/run.sh << 'RUN'
           #!/bin/bash
           SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -121,9 +120,8 @@ jobs:
           mkdir -p dist dist/lib
           cp PEncoder dist/
           chmod +x dist/PEncoder
-          for d in "$JAVA_HOME/lib" "$JAVA_HOME/lib/jli" "$JAVA_HOME/jre/lib" "$JAVA_HOME/jre/lib/jli"; do
-            [ -d "$d" ] && cp -n "$d"/*.dylib dist/lib/ 2>/dev/null || true
-          done
+          # native-image 在当前目录生成 .dylib，必须打包这些
+          cp -n *.dylib dist/lib/ 2>/dev/null || true
           cat > dist/run.sh << 'RUN'
           #!/bin/bash
           SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
