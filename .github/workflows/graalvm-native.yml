@@ -154,18 +154,20 @@ jobs:
           esac
         shell: bash
 
-      # Windows：可执行文件为 PEncoder.exe；可选复制 JDK 的 DLL 到 dist/bin，run.bat 将 bin 加入 PATH 后启动。
+      # Windows：native-image 会生成 PEncoder.exe 及同目录的 awt.dll 等，须一并打入 dist；
+      # 否则运行时报 Can't load library: awt。run.bat 将 dist 当前目录置于 PATH 以便加载同目录 DLL。
       - name: Collect artifact (Windows)
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
           mkdir -p dist
           cp PEncoder.exe dist/
+          cp -n *.dll dist/ 2>/dev/null || true
           if [ -d "$JAVA_HOME/bin" ]; then
             mkdir -p dist/bin
             cp "$JAVA_HOME/bin"/*.dll dist/bin/ 2>/dev/null || true
           fi
-          printf '@echo off\r\nset "PATH=%%~dp0bin;%%PATH%%"\r\n"%%~dp0PEncoder.exe" %%*\r\n' > dist/run.bat
+          printf '@echo off\r\nset "PATH=%%~dp0;%%~dp0bin;%%PATH%%"\r\n"%%~dp0PEncoder.exe" %%*\r\n' > dist/run.bat
 
       # Linux：native-image 会把 libawt.so、libawt_xawt.so 等输出到当前目录，必须把这些 .so 打进 dist/lib/；
       # 用户运行时用 run.sh 设置 LD_LIBRARY_PATH，否则会报 "no awt in java.library.path"。
