@@ -10,7 +10,7 @@ Current Version ：v2.3
 
 Function : Help you manage your password. Based on Java, using Swing GUI.
 
-Environment : Java 17+, Maven 3.6+ (for build). Win10 1903+ recommended on Windows.
+Environment : Java 25 (JDK 25), Maven 3.6+ (for build). Win10 1903+ recommended on Windows.
 
 Platform : Windows, Linux, macOS (cross-platform).
 
@@ -20,7 +20,7 @@ Password Length limit: <30
 
 
 ### Compile
-The project is a standard JPMS modular Maven project (`src/main/java` with `module-info.java`, resources in `src/main/resources`). Requires Java 17+ and Maven 3.6+.
+The project is a standard JPMS modular Maven project (`src/main/java` with `module-info.java`, resources in `src/main/resources`). Requires Java 25 (JDK 25) and Maven 3.6+.
 
 Build:
 `mvn package -DskipTests`
@@ -54,12 +54,40 @@ Good,you'll download archive file in RELEASE ,unzip it then run the 'Start' scri
 ### Get start:
 
 **Shortcuts**
-- **Ctrl+M** : Toggle between Encrypt and Decrypt mode in the work area.
+- **Alt+S** : Toggle between Encrypt and Decrypt mode in the work area.
+- **Alt+X** : Execute (encrypt or decrypt).
+- **Ctrl+E** : Edit bak file.
+- **Alt+C** : Copy output to clipboard.
 - **Ctrl+D** : Decode DB file to bak file (same as menu File → Decode data).
+- **Ctrl+Q** : Exit.
 
 **Options (menu Options)**
 - **Auto-encode bak to DB on exit** : When enabled, the app backs up both bak and DB, then encodes bak to DB before exit. If encoding fails, it asks whether to exit anyway. Reduces risk of data loss.
+- **Auto-backup to bak folder before encode/decode** : When enabled, backs up current bak/DB to a **bak** folder with timestamped filenames (no more `.backup` files in the same directory).
 - **Choose editor for bak file** : Which program opens the bak file when you click Edit. The app first lists detected editors on your system; if yours is not listed, use "Browse…" to select an executable. Unset = system default (Notepad / Gedit / macOS default text editor).
+
+### Migration from v2.2 to v2.3
+
+If you used v2.2, read this before upgrading so you can migrate without losing data.
+
+1. **Data and files are fully compatible**
+   - Old bak files using colon `:` as the delimiter still work. You do **not** need to change them. v2.3 reads both `:` and `|` formats.
+   - New bak files use the symbol `⫸` as the default delimiter, with a copy-paste line for it. You can keep using `:` when editing by hand if you prefer.
+
+2. **If you decoded DB → bak in v2.2 and noticed missing characters**
+   - v2.2 had a bug: decoding DB to bak dropped the first 4 characters of the decrypted content.
+   - **Fix**: With v2.3, put your **PEncoderDatabase** in the same folder as the app, then use **File → Decode DB file** to decode again. You will get the full bak; save it and re-encode to DB if needed.
+
+3. **Backup behavior changed**
+   - v2.2: When “auto-encode on exit” ran, it created `PEncoderDatabasebak.backup` and `PEncoderDatabase.backup` in the **same directory**.
+   - v2.3: No more `.backup` files in the same directory. There is an option **“Auto-backup to bak folder before encode/decode”**. When enabled, backups go into a **bak** folder with timestamped names (e.g. `bak/PEncoderDatabasebak_2026-02-07_14-30-00`). Enable it in **Options** if you want automatic backups.
+
+4. **Shortcuts changed**
+   - Toggle Encrypt/Decrypt: **Ctrl+M** → **Alt+S** (avoids conflict with text fields).
+   - New: **Alt+X** Execute, **Alt+C** Copy output, **Ctrl+Q** Exit, **Ctrl+E** Edit bak. **Ctrl+D** Decode is unchanged.
+
+5. **Runtime**
+   - Requires **JDK 25** (same as v2.3 build).
 
 !----------------------------------------!
 
@@ -82,7 +110,7 @@ Then you'll see a new 'PEncoderDatabasebak' file has been created. Click "编辑
 
 -We go on:
 
-Open the new bak file,delete the first line (使用前请删除此行，注意英文冒号的使用位置！格式示例：) .Follow the example in the second line:软件平台(Forum):账号名(User name):密码(Password):备注(Remarks).Using colon as the delimiter, each row is divided into four columns (therefore colons are not allowed in these three fields -- Forum ,UserName ,Remarks.【Ps:There will be no semicolon ":" in the encrypted message ,so you don't need to worry about the Password field.】Exceptions: Semicolon in Chinese (：) is OK in the three field mentioned above ,but not allowed in the Password field).Different colon:English colon(`:`),Chinese colon(`：`) ,others:such as en_us(,.:;'"\[]?!),cn_zh(，。：；‘’“”、【】？！).
+Open the new bak file,delete the first line (使用前请删除此行，注意英文冒号的使用位置！格式示例：) .Follow the example in the second line:软件平台(Forum):账号名(User name):密码(Password):备注(Remarks).The default delimiter is the symbol ⫸; the new bak file has a copy-paste line for it. Each row is divided into four columns (colon : format still supported) (therefore colons are not allowed in these three fields -- Forum ,UserName ,Remarks.【Ps:There will be no semicolon ":" in the encrypted message ,so you don't need to worry about the Password field.】Exceptions: Semicolon in Chinese (：) is OK in the three field mentioned above ,but not allowed in the Password field).Different colon:English colon(`:`),Chinese colon(`：`) ,others:such as en_us(,.:;'"\[]?!),cn_zh(，。：；‘’“”、【】？！).
 
 ![输入图片说明](https://images.gitee.com/uploads/images/2020/0623/213632_5b65c264_7423713.png "屏幕截图.png")
 
@@ -214,7 +242,7 @@ Press Enter.A new bak file generated.This is in case of a typo.Open New bak file
 
 ### Update log
 - **v2.3** (2026-02-07): Version and date bump.
-- **v2.2** (2022-08-08): Exit option: auto-encode bak to DB on exit (with backup). Shortcuts: Ctrl+D decode DB to bak, Ctrl+M toggle Encrypt/Decrypt. Options: choose editor for bak file (list of detected editors + Browse); supports Windows, Linux, macOS. Help text updated with shortcuts and options.
+- **v2.2** (2022-08-08): Exit option: auto-encode bak to DB on exit (with backup). Shortcuts: Ctrl+D decode DB to bak, Alt+S toggle Encrypt/Decrypt, Alt+X execute, Alt+C copy output. Options: choose editor for bak file (list of detected editors + Browse); supports Windows, Linux, macOS. Help text updated with shortcuts and options.
 
 ### Thanks for watching
 

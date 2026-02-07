@@ -25,7 +25,6 @@ import iface.IfPwdCoder;
 public final class ExportAsXlsFile {
 
 	private static final String BAK_PATH = "." + File.separator + "PEncoderDatabasebak";
-	private static final String BAK_SEP = ":";
 	private static final String CSV_NAME = "ExportFile.csv";
 
 	private ExportAsXlsFile() {
@@ -51,7 +50,8 @@ public final class ExportAsXlsFile {
 				new InputStreamReader(new FileInputStream(BAK_PATH), StandardCharsets.UTF_8))) {
 			String line;
 			while ((line = reader.readLine()) != null) {
-				String[] split = line.split(BAK_SEP);
+				String sep = line.contains(ReadPEncoderDB.BAK_DELIMITER) ? ReadPEncoderDB.BAK_DELIMITER : ":";
+				String[] split = line.split(java.util.regex.Pattern.quote(sep));
 				if (split.length < 4) {
 					continue;
 				}

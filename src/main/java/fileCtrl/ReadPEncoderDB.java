@@ -23,7 +23,9 @@ public final class ReadPEncoderDB {
 
 	private static final String BAK_FILE = "PEncoderDatabasebak";
 	private static final String DB_FILE = "PEncoderDatabase";
-	private static final String DB_HEADER = "闽:::";
+	private static final String DB_HEADER = "闽⫷";
+	/** 默认列分隔符（与 v2 密文中的 "v2:" 区分，避免混淆）；新建 bak 时使用，读取时兼容 ":" */
+	public static final String BAK_DELIMITER = "⫸";
 
 	private ReadPEncoderDB() {
 		// 工具类
@@ -61,7 +63,8 @@ public final class ReadPEncoderDB {
 			System.out.println("bak文件存在!拒绝新建。");
 			return;
 		}
-		writeToText("使用前请删除此行，注意英文冒号的使用位置！格式示例：\n软件平台:账号名:密码:备注", BAK_FILE);
+		String template = "使用前请删除此行。\n默认分隔符（可复制）：" + BAK_DELIMITER + "\n格式示例：\n软件平台" + BAK_DELIMITER + "账号名" + BAK_DELIMITER + "密码" + BAK_DELIMITER + "备注";
+		writeToText(template, BAK_FILE);
 		System.out.println("已新建bak文件。");
 	}
 
@@ -104,10 +107,9 @@ public final class ReadPEncoderDB {
 			throw new IOException("Base64 解码失败");
 		}
 		String c = CheckingInput.byteArrayToStr(b);
-		if (c == null || c.length() <= 4) {
+		if (c == null || c.isEmpty()) {
 			throw new IOException("解密后内容异常");
 		}
-		c = c.substring(4);
 		writeToText(c, BAK_FILE);
 	}
 

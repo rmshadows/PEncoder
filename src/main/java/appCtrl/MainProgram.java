@@ -21,6 +21,8 @@ import java.awt.event.WindowEvent;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -107,13 +109,17 @@ public class MainProgram {
 	private final JMenuItem langZh = new JMenuItem();
 	private final JMenuItem langEn = new JMenuItem();
 	private final JCheckBoxMenuItem autoEncodeOnExitItem = new JCheckBoxMenuItem();
+	private final JCheckBoxMenuItem autoBackupToBakItem = new JCheckBoxMenuItem();
 	private final JMenuItem chooseBakEditorItem = new JMenuItem();
 
 	private static final String PREF_AUTO_ENCODE_ON_EXIT = "autoEncodeBakToDbOnExit";
+	private static final String PREF_AUTO_BACKUP_TO_BAK = "autoBackupToBakFolder";
 	private static final String PREF_BAK_EDITOR = "bakEditorPath";
 	private static final String BAK_FILENAME = "PEncoderDatabasebak";
 	private static final String DB_FILENAME = "PEncoderDatabase";
-	private static final String BACKUP_SUFFIX = ".backup";
+	/** 备份目标文件夹，时间命名文件放入此处，不散落在当前目录 */
+	private static final String BAK_FOLDER = "bak";
+	private static final DateTimeFormatter BACKUP_TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
 	private final JRadioButton encoderButton = new JRadioButton();
 	private final JRadioButton decoderButton = new JRadioButton();
@@ -166,6 +172,8 @@ public class MainProgram {
 		langEn.setToolTipText(msg("tip.menu.lang_en"));
 		autoEncodeOnExitItem.setText(msg("menu.auto_encode_on_exit"));
 		autoEncodeOnExitItem.setToolTipText(msg("tip.menu.auto_encode_on_exit"));
+		autoBackupToBakItem.setText(msg("menu.auto_backup_to_bak"));
+		autoBackupToBakItem.setToolTipText(msg("tip.menu.auto_backup_to_bak"));
 		chooseBakEditorItem.setText(msg("menu.choose_bak_editor"));
 		chooseBakEditorItem.setToolTipText(msg("tip.menu.choose_bak_editor"));
 		popM.setText(msg("pop.what"));
@@ -192,16 +200,31 @@ public class MainProgram {
 	private JLabel inputLabel;
 	private JLabel outputLabel;
 
-	/** 备份指定文件到同目录下的 文件名.backup，若原文件存在则覆盖备份。 */
-	private static void backupFile(String fileName) throws IOException {
-		String dir = "." + File.separator;
-		File src = new File(dir + fileName);
+	/** 若勾选“自动备份到 bak 文件夹”，则将指定文件复制到 bak/ 目录下，文件名带时间戳（不散落在当前目录）。 */
+	private void backupToBakFolderIfEnabled(String fileName) throws IOException {
+		if (!autoBackupToBakItem.isSelected()) {
+			return;
+		}
+		String baseDir = "." + File.separator;
+		File src = new File(baseDir + fileName);
 		if (!src.exists()) {
 			return;
 		}
-		File dest = new File(dir + fileName + BACKUP_SUFFIX);
+		File bakDir = new File(baseDir + BAK_FOLDER);
+		if (!bakDir.exists()) {
+			bakDir.mkdirs();
+		}
+		String stamp = LocalDateTime.now().format(BACKUP_TIMESTAMP);
+		String baseName = fileName;
+		int lastDot = fileName.lastIndexOf('.');
+		if (lastDot > 0) {
+			baseName = fileName.substring(0, lastDot) + "_" + stamp + fileName.substring(lastDot);
+		} else {
+			baseName = fileName + "_" + stamp;
+		}
+		File dest = new File(bakDir, baseName);
 		Files.copy(src.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-		System.out.println(format(msg("dialog.backup_done"), fileName + BACKUP_SUFFIX));
+		System.out.println(format(msg("dialog.backup_done"), BAK_FOLDER + File.separator + baseName));
 	}
 
 	/** 执行退出流程：若勾选“退出时自动编码”，则先备份再编码，失败时询问是否仍退出。 */
@@ -219,8 +242,8 @@ public class MainProgram {
 		}
 		if (autoEncodeOnExitItem.isSelected()) {
 			try {
-				backupFile(BAK_FILENAME);
-				backupFile(DB_FILENAME);
+				backupToBakFolderIfEnabled(BAK_FILENAME);
+				backupToBakFolderIfEnabled(DB_FILENAME);
 				ReadPEncoderDB.encodeDB();
 				System.out.println(msg("dialog.exit_encode_ok"));
 			} catch (Exception e) {
@@ -252,6 +275,21 @@ public class MainProgram {
 	private static void setAutoEncodeOnExitPreference(boolean value) {
 		try {
 			Preferences.userNodeForPackage(MainProgram.class).putBoolean(PREF_AUTO_ENCODE_ON_EXIT, value);
+		} catch (Exception ignored) {
+		}
+	}
+
+	private static boolean getAutoBackupToBakPreference() {
+		try {
+			return Preferences.userNodeForPackage(MainProgram.class).getBoolean(PREF_AUTO_BACKUP_TO_BAK, false);
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	private static void setAutoBackupToBakPreference(boolean value) {
+		try {
+			Preferences.userNodeForPackage(MainProgram.class).putBoolean(PREF_AUTO_BACKUP_TO_BAK, value);
 		} catch (Exception ignored) {
 		}
 	}
@@ -385,6 +423,8 @@ public class MainProgram {
 	/** 解码 DB 为 bak（菜单或 Ctrl+D 触发）。 */
 	private void runDecodeDB() {
 		try {
+			backupToBakFolderIfEnabled(BAK_FILENAME);
+			backupToBakFolderIfEnabled(DB_FILENAME);
 			System.out.println("正在解码DB文件……");
 			ReadPEncoderDB.decodeDB();
 		} catch (CryptoException e1) {
@@ -451,6 +491,50 @@ public class MainProgram {
 		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 		clipboard.setContents(new StringSelection(text), null);
 		System.out.println("已复制到剪贴板。");
+	}
+
+	/** 将输出区内容复制到剪贴板（快捷键 Ctrl+C）。 */
+	private void copyOutputToClipboard() {
+		copyToClipboard(outputArea.getText());
+	}
+
+	/** 执行当前模式下的加密或解密（快捷键 Ctrl+X）。 */
+	private void doExecute() {
+		try {
+			outputArea.setText(null);
+			if (encoderButton.isSelected()) {
+				String a = CheckingInput.pwdAppend(inputArea.getText());
+				isItSemicolon = CheckingInput.wasLastRejectionSemicolon();
+				if (a == null) {
+					return;
+				}
+				IfPwdCoder encoding = new AEScoder();
+				String x = encoding.encode(a);
+				if (isItSemicolon) {
+					outputArea.setText(null);
+				} else {
+					outputArea.setText(x);
+				}
+				System.out.println("——加密完成——");
+			} else if (decoderButton.isSelected()) {
+				String b = inputArea.getText();
+				IfPwdCoder decoding = new AEScoder();
+				String x = decoding.decode(b);
+				x = x.replaceAll(";", "");
+				if (x.contains("；")) {
+					x = x.replaceAll("；", ";");
+				}
+				outputArea.setText(x);
+				System.out.println("——解密完成——");
+			} else {
+				System.out.println("运行出错。");
+			}
+		} catch (CryptoException e3) {
+			System.out.println("加解密失败: " + e3.getMessage());
+			JOptionPane.showMessageDialog(mainWindow, "加解密失败: " + e3.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+		} catch (Exception e3) {
+			System.out.println("运行出错: " + e3.getMessage());
+		}
 	}
 
 	/**
@@ -524,14 +608,15 @@ public class MainProgram {
 		List<String> accounts = new ArrayList<>();
 		List<String> passwords = new ArrayList<>();
 		List<String> remarks = new ArrayList<>();
-		String bakSep = ":";
+		String outDelim = ReadPEncoderDB.BAK_DELIMITER;
 		try {
 			System.out.println("为以防万一，原 bak 文件不会被覆盖，请手动删除谢谢。");
 			try (BufferedReader reader = new BufferedReader(
 					new InputStreamReader(new FileInputStream(bakpath), StandardCharsets.UTF_8))) {
 				String line;
 				while ((line = reader.readLine()) != null) {
-					String[] split = line.split(bakSep);
+					String sep = line.contains(ReadPEncoderDB.BAK_DELIMITER) ? ReadPEncoderDB.BAK_DELIMITER : ":";
+					String[] split = line.split(java.util.regex.Pattern.quote(sep));
 					if (split.length >= 4) {
 						platforms.add(split[0]);
 						accounts.add(split[1]);
@@ -547,8 +632,8 @@ public class MainProgram {
 			}
 			StringBuilder out = new StringBuilder();
 			for (int i = 0; i < platforms.size(); i++) {
-				out.append(platforms.get(i)).append(":").append(accounts.get(i))
-						.append(":").append(passwords.get(i)).append(":").append(remarks.get(i)).append("\n");
+				out.append(platforms.get(i)).append(outDelim).append(accounts.get(i))
+						.append(outDelim).append(passwords.get(i)).append(outDelim).append(remarks.get(i)).append("\n");
 			}
 			ReadPEncoderDB.writeToText(out.toString(), bakpath + "NEW");
 		} catch (CryptoException e1) {
@@ -619,6 +704,9 @@ public class MainProgram {
 		autoEncodeOnExitItem.setFont(f);
 		autoEncodeOnExitItem.setSelected(getAutoEncodeOnExitPreference());
 		options.add(autoEncodeOnExitItem);
+		autoBackupToBakItem.setFont(f);
+		autoBackupToBakItem.setSelected(getAutoBackupToBakPreference());
+		options.add(autoBackupToBakItem);
 		chooseBakEditorItem.setFont(f);
 		options.add(chooseBakEditorItem);
 		langMenu.setFont(f);
@@ -721,44 +809,8 @@ public class MainProgram {
 //		设置事件-----------------------------------------------------------------
 //		按钮事件=================================================================
 		edit.addActionListener(e -> openDBFile());
-		copy.addActionListener(e -> copyToClipboard(outputArea.getText()));
-		run.addActionListener(e -> {
-			try {
-				outputArea.setText(null);
-				if (encoderButton.isSelected()) {
-					String a = CheckingInput.pwdAppend(inputArea.getText());
-					isItSemicolon = CheckingInput.wasLastRejectionSemicolon();
-					if (a == null) {
-						return;
-					}
-					IfPwdCoder encoding = new AEScoder();
-					String x = encoding.encode(a);
-					if (isItSemicolon) {
-						outputArea.setText(null);
-					} else {
-						outputArea.setText(x);
-					}
-					System.out.println("——加密完成——");
-				} else if (decoderButton.isSelected()) {
-					String b = inputArea.getText();
-					IfPwdCoder decoding = new AEScoder();
-					String x = decoding.decode(b);
-					x = x.replaceAll(";", "");
-					if (x.contains("；")) {
-						x = x.replaceAll("；", ";");
-					}
-					outputArea.setText(x);
-					System.out.println("——解密完成——");
-				} else {
-					System.out.println("运行出错。");
-				}
-			} catch (CryptoException e3) {
-				System.out.println("加解密失败: " + e3.getMessage());
-				JOptionPane.showMessageDialog(mainWindow, "加解密失败: " + e3.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
-			} catch (Exception e3) {
-				System.out.println("运行出错: " + e3.getMessage());
-			}
-		});
+		copy.addActionListener(e -> copyOutputToClipboard());
+		run.addActionListener(e -> doExecute());
 		isPwdInCleartext.addActionListener(e -> {
 			if (isPwdInCleartext.isSelected()) {
 				keyA.setEchoChar(defaultChar);
@@ -786,6 +838,8 @@ public class MainProgram {
 		});
 		EN.addActionListener(e -> {
 			try {
+				backupToBakFolderIfEnabled(BAK_FILENAME);
+				backupToBakFolderIfEnabled(DB_FILENAME);
 				System.out.println("正在编码bak文件……");
 				ReadPEncoderDB.encodeDB();
 			} catch (CryptoException e1) {
@@ -798,7 +852,9 @@ public class MainProgram {
 		});
 		DE.addActionListener(e -> runDecodeDB());
 		DE.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK));
+		exit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, InputEvent.CTRL_DOWN_MASK));
 		exit.addActionListener(e -> doExit());
+		autoBackupToBakItem.addActionListener(e -> setAutoBackupToBakPreference(autoBackupToBakItem.isSelected()));
 		
 		export.addActionListener(e -> {
 			boolean t = mainWindow.isAlwaysOnTop();
@@ -921,9 +977,9 @@ public class MainProgram {
 			}
 		});
 
-		// 快捷键：Ctrl+M 切换加密/解密模式
+		// 快捷键：Alt+S 切换加密/解密模式；Alt+X 执行；Ctrl+E 编辑 bak；Alt+C 复制输出（Alt 不与输入框剪切/复制冲突）
 		mainWindow.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
-				KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK), "toggleEncryptDecrypt");
+				KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.ALT_DOWN_MASK), "toggleEncryptDecrypt");
 		mainWindow.getRootPane().getActionMap().put("toggleEncryptDecrypt", new AbstractAction() {
 			@Override
 			public void actionPerformed(java.awt.event.ActionEvent e) {
@@ -932,6 +988,38 @@ public class MainProgram {
 				} else {
 					encoderButton.setSelected(true);
 				}
+			}
+		});
+		mainWindow.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+				KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.ALT_DOWN_MASK), "execute");
+		mainWindow.getRootPane().getActionMap().put("execute", new AbstractAction() {
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent e) {
+				doExecute();
+			}
+		});
+		mainWindow.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+				KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK), "editBak");
+		mainWindow.getRootPane().getActionMap().put("editBak", new AbstractAction() {
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent e) {
+				openDBFile();
+			}
+		});
+		mainWindow.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+				KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.ALT_DOWN_MASK), "copyOutput");
+		mainWindow.getRootPane().getActionMap().put("copyOutput", new AbstractAction() {
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent e) {
+				copyOutputToClipboard();
+			}
+		});
+		mainWindow.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+				KeyStroke.getKeyStroke(KeyEvent.VK_Q, InputEvent.CTRL_DOWN_MASK), "exit");
+		mainWindow.getRootPane().getActionMap().put("exit", new AbstractAction() {
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent e) {
+				doExit();
 			}
 		});
 
