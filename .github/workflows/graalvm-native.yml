@@ -1,12 +1,41 @@
-# GraalVM Native Image：为 Windows / Linux / macOS 构建原生可执行文件（手动触发）
-# 使用 Liberica Native Image Kit（AWT/Swing 支持完整）；先统一打 JAR，再各平台 native-image
+# =============================================================================
+# Native Image Build：为 Windows / Linux / macOS 构建 GraalVM 原生可执行文件
+# =============================================================================
+#
+# 触发方式：仅手动触发（Actions 页 → 本 workflow → Run workflow）。
+# 可选输入：platform = all | linux | windows | macos，决定为哪些系统生成可执行文件。
+#
+# 流程概览：
+#   1. build-jar：用 Maven 打一次 JAR（target/pencoder.jar），上传为 artifact。
+#   2. set-matrix：根据用户选择的 platform 输出「要构建的平台」的 JSON 数组。
+#   3. build-native：按 matrix 在对应 runner 上下载 JAR、用 Liberica NIK 跑 native-image，
+#      打包可执行文件与依赖库，上传为各平台 artifact。
+#
+# 为何用 set-matrix 而不是在 build-native 的 matrix 里写表达式？
+#   - 若在 job 的 if 里写「inputs.platform == 'all' || inputs.platform == matrix.xxx」，
+#     GitHub 解析时 job 的 matrix 上下文尚未注入，会报 Unrecognized named-value: 'matrix'。
+#   - 若在 matrix.include 里写一长串「inputs.platform == 'all' && fromJson('[...]') || ...」，
+#     YAML 里的引号与括号嵌套容易导致表达式解析错误（如 Unexpected end of expression）。
+#   - 因此改为：用单独 job（set-matrix）在 run 里根据 inputs.platform 写出 JSON 到
+#     GITHUB_OUTPUT，build-native 用 fromJson(needs.set-matrix.outputs.include) 得到
+#     matrix.include，这样既支持「按选择动态矩阵」，又避免在 ${{ }} 里写复杂表达式。
+#
+# 运行产物说明：
+#   - Linux/macOS：native-image 会在当前目录生成 libawt.so、libawt_xawt.so 等，需一并
+#     打入 dist/lib/，并通过 run.sh 设置 LD_LIBRARY_PATH/DYLD_LIBRARY_PATH，否则运行时报
+#     "no awt in java.library.path"。用户需用 ./run.sh 启动，不要直接 ./PEncoder。
+#   - 资源文件：Messages_zh_CN.properties / Messages_en.properties 需通过 -H:IncludeResources
+#     打进镜像，否则 native 运行时报 Resource not found。
+#
+# 依赖：Liberica Native Image Kit（AWT/Swing 支持完整，避免社区版 GraalVM 的 AWT 问题）。
+# =============================================================================
 name: Native Image Build
 
 on:
   workflow_dispatch:
     inputs:
       platform:
-        description: "目标平台（all = 三个系统都生成）"
+        description: "目标平台（all = 三个系统都生成，否则只生成所选系统）"
         required: true
         default: all
         type: choice
@@ -21,7 +50,9 @@ env:
   MAVEN_OPTS: "-Xmx1024m"
 
 jobs:
-  # 仅构建一次 JAR，供各平台 native-image 使用
+  # ---------------------------------------------------------------------------
+  # 只构建一次 JAR，供后续各平台 native-image 共用，避免在三个 runner 上各跑一遍 Maven。
+  # ---------------------------------------------------------------------------
   build-jar:
     runs-on: ubuntu-22.04
     steps:
@@ -44,7 +75,10 @@ jobs:
           name: pencoder-jar
           path: target/pencoder.jar
 
-  # 根据手动选择的 platform 输出要构建的平台列表（JSON）
+  # ---------------------------------------------------------------------------
+  # 根据 workflow_dispatch 的 platform 输入，向 GITHUB_OUTPUT 写入 matrix 的 include 数组（JSON）。
+  # build-native 通过 needs.set-matrix.outputs.include 和 fromJson() 得到矩阵，从而只跑选中的平台。
+  # ---------------------------------------------------------------------------
   set-matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -67,7 +101,10 @@ jobs:
               ;;
           esac
 
-  # 各平台构建 native 可执行文件
+  # ---------------------------------------------------------------------------
+  # 在 matrix 指定的每个 runner（os）上下载 JAR、安装 GraalVM/Liberica NIK、构建 native 镜像并打包产物。
+  # matrix.include 来自 set-matrix 输出的 JSON，因此实际运行的组合由用户选择的 platform 决定。
+  # ---------------------------------------------------------------------------
   build-native:
     needs: [build-jar, set-matrix]
     strategy:
@@ -86,6 +123,7 @@ jobs:
         with:
           name: pencoder-jar
 
+      # Linux 上 native-image 链接 AWT 需要 X11 等开发库，否则构建可能失败或运行缺库。
       - name: Install Linux dependencies (AWT/X11)
         if: matrix.os == 'ubuntu-22.04'
         run: |
@@ -100,19 +138,23 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: "liberica"
-          # native-image 已包含在 Liberica NIK，无需 components；不在此处使用 Maven cache（仅下载 JAR）
+          # Liberica NIK 自带 native-image，无需 components；本 job 不跑 Maven，不设 cache
 
+      # 使用模块路径和主类构建原生镜像。IncludeResources 确保 Messages_*.properties 打进镜像，避免运行时 Resource not found。
+      # Windows 上 native-image 可能不在 PATH，且可执行名为 native-image.cmd，故用 JAVA_HOME/bin 显式调用。
       - name: Build native image
         run: |
-          native-image \
-            --module-path pencoder.jar \
-            -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher \
-            -o PEncoder \
-            --no-fallback \
-            -Djava.awt.headless=false \
-            -H:IncludeResources='appCtrl/.*\\.properties' -H:IncludeResources='.*Messages_.*\\.properties'
+          case "$RUNNER_OS" in
+            Windows)
+              "$JAVA_HOME/bin/native-image.cmd" --module-path pencoder.jar -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher -o PEncoder --no-fallback -Djava.awt.headless=false -H:IncludeResources='appCtrl/.*\\.properties' -H:IncludeResources='.*Messages_.*\\.properties'
+              ;;
+            *)
+              native-image --module-path pencoder.jar -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher -o PEncoder --no-fallback -Djava.awt.headless=false -H:IncludeResources='appCtrl/.*\\.properties' -H:IncludeResources='.*Messages_.*\\.properties'
+              ;;
+          esac
         shell: bash
 
+      # Windows：可执行文件为 PEncoder.exe；可选复制 JDK 的 DLL 到 dist/bin，run.bat 将 bin 加入 PATH 后启动。
       - name: Collect artifact (Windows)
         if: matrix.os == 'windows-latest'
         shell: bash
@@ -125,6 +167,8 @@ jobs:
           fi
           printf '@echo off\r\nset "PATH=%%~dp0bin;%%PATH%%"\r\n"%%~dp0PEncoder.exe" %%*\r\n' > dist/run.bat
 
+      # Linux：native-image 会把 libawt.so、libawt_xawt.so 等输出到当前目录，必须把这些 .so 打进 dist/lib/；
+      # 用户运行时用 run.sh 设置 LD_LIBRARY_PATH，否则会报 "no awt in java.library.path"。
       - name: Collect artifact (Linux)
         if: matrix.os == 'ubuntu-22.04'
         shell: bash
@@ -132,7 +176,6 @@ jobs:
           mkdir -p dist dist/lib
           cp PEncoder dist/
           chmod +x dist/PEncoder
-          # native-image 在当前目录生成 libawt.so、libawt_xawt.so 等，必须打包这些而非 JAVA_HOME 里的
           cp -n *.so dist/lib/ 2>/dev/null || true
           cat > dist/run.sh << 'RUN'
           #!/bin/bash
@@ -142,6 +185,7 @@ jobs:
           RUN
           chmod +x dist/run.sh
 
+      # macOS：同样把 native-image 生成的 .dylib 打进 dist/lib/，run.sh 设置 DYLD_LIBRARY_PATH 后启动。
       - name: Collect artifact (macOS)
         if: matrix.os == 'macos-latest'
         shell: bash
@@ -149,7 +193,6 @@ jobs:
           mkdir -p dist dist/lib
           cp PEncoder dist/
           chmod +x dist/PEncoder
-          # native-image 在当前目录生成 .dylib，必须打包这些
           cp -n *.dylib dist/lib/ 2>/dev/null || true
           cat > dist/run.sh << 'RUN'
           #!/bin/bash
@@ -159,6 +202,7 @@ jobs:
           RUN
           chmod +x dist/run.sh
 
+      # 产物名即 matrix.artifact_name（如 PEncoder-linux-x64），在 Run 摘要页 Artifacts 区下载。
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
