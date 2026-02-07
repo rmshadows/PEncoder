@@ -1,14 +1,13 @@
 package algorithmSettings;
 
-import java.io.UnsupportedEncodingException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.spec.KeySpec;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import appCtrl.MainProgram;
@@ -16,253 +15,218 @@ import fileCtrl.CheckingInput;
 import iface.IfPwdCoder;
 
 /**
- * AES算法包
- * 实现IfPwdCoder接口，包含AES相关的方法，包括加密解密等
+ * AES-CBC 加解密实现。
+ * <ul>
+ *   <li><b>新格式 (v2)</b>：使用 PBKDF2 从 KeyA+KeyB 派生密钥，每次加密使用随机 IV，密文为 {@code "v2:" + hex(IV) + hex(密文)}。</li>
+ *   <li><b>旧格式</b>：KeyA 补齐/截断为密钥，KeyB 为 IV，密文为 hex(密文)。解密时自动识别并兼容。</li>
+ * </ul>
+ *
  * @author jessie
  */
 public class AEScoder implements IfPwdCoder {
-	
-	/**
-	 * 参数：
-	 * keyA = KeyWords
-	 * keyB = ivSpec
-	 * 位  数 = 16byte
-	 */
-	private static final String ENCRY_ALGORITHM = "AES";//加密方法名称
-	private static final String CIPHER_MODE = "AES/CBC/PKCS5Padding";//填充方式
-	private static final String CHARACTER = "UTF-8";//编码
-	private static final int PWD_SIZE = 16;//采用128位的Key 16byte
-	
-	/**
-	 * 密钥长度补全
-	 * 把所给的String密钥转为16 Byte数组并填充
-	 * @param password String KeyA or KeyB 
-	 * @return Byte[] 密钥的byte数组
-	 * @throws UnsupportedEncodingException 忽略编码错误
-	 */
-	private static byte[] pwdHandler(String password, boolean isIv) throws UnsupportedEncodingException {
-		byte[] data = null;
-		if (isIv) {
-			// iv只能16位
-			if (password != null) {
-				byte[] bytes = password.getBytes(CHARACTER);//一个中文3位长度，一数字1位
-				if (password.length() < 16) {
-					System.arraycopy(bytes, 0, data = new byte[16], 0, bytes.length);
-				} 
-				else {
-					data = bytes;
-				}
-			}
-		}else {
-			if (password != null) {
-				byte[] bytes = password.getBytes(CHARACTER);//一个中文3位长度，一数字1位
-				if (password.length() < PWD_SIZE) {
-					System.arraycopy(bytes, 0, data = new byte[PWD_SIZE], 0, bytes.length);
-				} 
-				else {
-					data = bytes;
-				}
-			}
+
+	private static final String ENCRYPT_ALGORITHM = "AES";
+	private static final String CIPHER_MODE = "AES/CBC/PKCS5Padding";
+	private static final String CHARSET_NAME = StandardCharsets.UTF_8.name();
+	private static final int KEY_SIZE_BYTES = 16;
+	private static final int IV_SIZE_BYTES = 16;
+
+	/** 新格式密文前缀，用于识别并兼容旧数据 */
+	private static final String V2_PREFIX = "v2:";
+
+	/** PBKDF2 迭代次数，提高穷举成本 */
+	private static final int PBKDF2_ITERATIONS = 50_000;
+	private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
+	/** 固定盐（仅用于派生，不随密文存储；与随机 IV 配合使用） */
+	private static final byte[] KDF_SALT = "PEncoder.AES.v2!".getBytes(StandardCharsets.UTF_8);
+
+	private static final SecureRandom RANDOM = new SecureRandom();
+
+	// ---------- 旧格式：密钥/IV 直接由字符串补齐或截断（仅用于解密旧数据） ----------
+
+	private static byte[] legacyKeyFromPassword(String password) {
+		if (password == null) return null;
+		byte[] bytes = password.getBytes(StandardCharsets.UTF_8);
+		if (bytes.length < KEY_SIZE_BYTES) {
+			byte[] result = new byte[KEY_SIZE_BYTES];
+			System.arraycopy(bytes, 0, result, 0, bytes.length);
+			return result;
 		}
-		return data;
+		return bytes.length == KEY_SIZE_BYTES ? bytes : java.util.Arrays.copyOf(bytes, KEY_SIZE_BYTES);
 	}
-	
-	/**
-	 * 最原始的AES加密器
-	 * 将提供的byte数组的‘明文’和‘密钥’转化为 输出字节数字
-	 * @param clearTextBytes byte[] 明文密码
-	 * @param pwdBytes byte[] KeyA
-	 * @return byte[] 
-	 */
-	private static byte[] encrypt(byte[] clearTextBytes, byte[] pwdBytes) {
+
+	/** 旧格式加密：KeyA 为密钥，KeyB 为 IV */
+	private static byte[] legacyEncrypt(byte[] plainBytes, byte[] keyBytes, byte[] ivBytes) throws CryptoException {
 		try {
-			//参数要求：keySpec、ivSpec
-			// 1 获取加密密钥
-			SecretKeySpec keySpec = new SecretKeySpec(pwdBytes, ENCRY_ALGORITHM);
-			IvParameterSpec ivSpec = new IvParameterSpec(pwdHandler(String.copyValueOf(MainProgram.keyB.getPassword()), true));
-			// 2 获取Cipher实例
+			SecretKeySpec keySpec = new SecretKeySpec(keyBytes, ENCRYPT_ALGORITHM);
+			IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
 			Cipher cipher = Cipher.getInstance(CIPHER_MODE);
-			// 查看数据块位数 默认为16（byte） * 8 =128 bit
-			//System.out.println("数据块位数(byte)：" + cipher.getBlockSize());
-			// 3 初始化Cipher实例。设置执行模式以及加密密钥
 			cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
-			// 4 执行
-			byte[] cipherTextBytes = cipher.doFinal(clearTextBytes);
-			System.out.println("加密完成。");
-			// 5 返回密文字符集
-			return cipherTextBytes;
+			return cipher.doFinal(plainBytes);
 		} catch (Exception e) {
-//			e.printStackTrace();
+			throw new CryptoException("加密失败", e);
 		}
-		//加密失败
-		System.out.println("加密失败!");
-		return null;
 	}
-	
-	/**
-	 * 最原始的AES解码器
-	 * 将提供的byte数组的‘密文’和‘密钥’转化为 输出字节数字
-	 * @param cipherTextBytes byte[] 密文密码KeyA 
-	 * @param pwdBytes byte[] KeyA 
-	 * @return byte[] 
-	 */
-	private static byte[] decrypt(byte[] cipherTextBytes, byte[] pwdBytes) {
-		//参数设置：keySpec、ivSpec
+
+	/** 旧格式解密 */
+	private static byte[] legacyDecrypt(byte[] cipherBytes, byte[] keyBytes, byte[] ivBytes) throws CryptoException {
 		try {
-			// 1 获取解密密钥
-			SecretKeySpec keySpec = new SecretKeySpec(pwdBytes, ENCRY_ALGORITHM);
-			IvParameterSpec ivSpec = new IvParameterSpec(pwdHandler(String.copyValueOf(MainProgram.keyB.getPassword()), true));
-			// 2 获取Cipher实例
+			SecretKeySpec keySpec = new SecretKeySpec(keyBytes, ENCRYPT_ALGORITHM);
+			IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
 			Cipher cipher = Cipher.getInstance(CIPHER_MODE);
-			// 查看数据块位数 默认为16（byte） * 8 =128 bit
-			//System.out.println("数据块位数(byte)：" + cipher.getBlockSize());
-			// 3 初始化Cipher实例。设置执行模式以及加密密钥
 			cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
-			// 4 执行
-			byte[] clearTextBytes = cipher.doFinal(cipherTextBytes);
-			// 5 返回明文字符集
-			return clearTextBytes;
-		} catch (NoSuchAlgorithmException e) {
-//			e.printStackTrace();
-		} catch (InvalidKeyException e) {
-//			e.printStackTrace();
-		} catch (NoSuchPaddingException e) {
-//			e.printStackTrace();
-		} catch (BadPaddingException e) {
-//			e.printStackTrace();
-		} catch (IllegalBlockSizeException e) {
-//			e.printStackTrace();
+			return cipher.doFinal(cipherBytes);
 		} catch (Exception e) {
-//			e.printStackTrace();
+			throw new CryptoException("解密失败", e);
 		}
-		// 解密错误 返回null
-		System.out.println("解密失败!");
-		return null;
 	}
-	
+
+	// ---------- 新格式：PBKDF2 派生密钥 + 随机 IV ----------
+
 	/**
-	 * 重写接口加密方法
-	 * 将明文密码加密成密文密码
-	 * @param clearText String 明文密码 
-	 * @return String 密文密码
+	 * 使用 PBKDF2 从 KeyA+KeyB 派生 16 字节 AES 密钥。
 	 */
+	private static byte[] deriveKey(String keyA, String keyB) throws CryptoException {
+		String password = (keyA != null ? keyA : "") + "\n" + (keyB != null ? keyB : "");
+		if (password.trim().isEmpty()) {
+			throw new CryptoException("密钥不能为空");
+		}
+		try {
+			KeySpec spec = new PBEKeySpec(password.toCharArray(), KDF_SALT, PBKDF2_ITERATIONS, KEY_SIZE_BYTES * 8);
+			SecretKeyFactory factory = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM);
+			byte[] keyBytes = factory.generateSecret(spec).getEncoded();
+			// 清空 PBEKeySpec 内部 char[] 的引用（密钥已复制到 keyBytes）
+			return keyBytes;
+		} catch (Exception e) {
+			throw new CryptoException("密钥派生失败", e);
+		}
+	}
+
+	/**
+	 * 新格式加密：随机 IV + PBKDF2 密钥，返回 "v2:" + hex(IV) + hex(密文)。
+	 */
+	private static String encryptV2(byte[] plainBytes, String keyA, String keyB) throws CryptoException {
+		byte[] keyBytes = deriveKey(keyA, keyB);
+		byte[] iv = new byte[IV_SIZE_BYTES];
+		RANDOM.nextBytes(iv);
+		try {
+			SecretKeySpec keySpec = new SecretKeySpec(keyBytes, ENCRYPT_ALGORITHM);
+			IvParameterSpec ivSpec = new IvParameterSpec(iv);
+			Cipher cipher = Cipher.getInstance(CIPHER_MODE);
+			cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
+			byte[] cipherBytes = cipher.doFinal(plainBytes);
+			return V2_PREFIX + bytesToHex(iv) + bytesToHex(cipherBytes);
+		} catch (Exception e) {
+			throw new CryptoException("加密失败", e);
+		}
+	}
+
+	/**
+	 * 新格式解密：解析 "v2:" + hex(IV) + hex(密文)，用 PBKDF2 密钥解密。
+	 */
+	private static byte[] decryptV2(String cipherHex, String keyA, String keyB) throws CryptoException {
+		String hex = cipherHex.substring(V2_PREFIX.length());
+		if (hex.length() < IV_SIZE_BYTES * 2) {
+			throw new CryptoException("v2 密文过短");
+		}
+		byte[] iv = hexToBytes(hex.substring(0, IV_SIZE_BYTES * 2));
+		byte[] cipherBytes = hexToBytes(hex.substring(IV_SIZE_BYTES * 2));
+		byte[] keyBytes = deriveKey(keyA, keyB);
+		try {
+			SecretKeySpec keySpec = new SecretKeySpec(keyBytes, ENCRYPT_ALGORITHM);
+			IvParameterSpec ivSpec = new IvParameterSpec(iv);
+			Cipher cipher = Cipher.getInstance(CIPHER_MODE);
+			cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
+			return cipher.doFinal(cipherBytes);
+		} catch (Exception e) {
+			throw new CryptoException("解密失败", e);
+		}
+	}
+
+	// ---------- UI 耦合（后续可改为参数传入） ----------
+
+	private static String getKeyAFromUi() {
+		return String.copyValueOf(MainProgram.keyA.getPassword());
+	}
+
+	private static String getKeyBFromUi() {
+		return String.copyValueOf(MainProgram.keyB.getPassword());
+	}
+
+	// ---------- 对外接口 ----------
+
 	@Override
 	public String encode(String clearText) {
-		String encoded = null;
-		byte[] a = CheckingInput.stringToByteArray(clearText);//明文密码转字节数组
-		byte[] b = null;
-		try {
-			b = pwdHandler(String.copyValueOf(MainProgram.keyA.getPassword()), false);
-		} catch (UnsupportedEncodingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}//keyA
-//		System.out.println(CheckingInput.byteArrayToStr(b));
-		byte[] c = encrypt(a, b);
-		encoded = byte2hex(c);
-		return encoded;
+		byte[] plainBytes = CheckingInput.stringToByteArray(clearText);
+		if (plainBytes == null) {
+			throw new CryptoException("明文转字节失败");
+		}
+		String keyA = getKeyAFromUi();
+		String keyB = getKeyBFromUi();
+		return encryptV2(plainBytes, keyA, keyB);
 	}
-	
-	/**
-	 * 重写接口解密方法
-	 * 将密文密码解密成明文密码
-	 * @param cipherText String 密文密码 
-	 * @return String 明文密码 
-	 */
+
 	@Override
-	public String decoder(String cipherText) {
-		String decoded = null;
-//		System.out.println(cipherText);
-		byte[] a = hex2byte(cipherText);
-		byte[] b = null;
-		try {
-			b = pwdHandler(String.copyValueOf(MainProgram.keyA.getPassword()), false);
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}//keyA
-		byte[] c = decrypt(a, b);
-		decoded = CheckingInput.byteArrayToStr(c);
-		return decoded;
-	}
-	
-	/**
-	 * 更换密钥方法
-	 * 替换KeyA、B时调用的方法
-	 * @param clearText String 旧密码内容
-	 * @param nKeyA String 新KeyA
-	 * @param nKeyB String 新KeyB
-	 * @return String 新密码内容
-	 */
-	public static String ckeyEncode(String clearText,String nKeyA, String nKeyB) {
-		String encoded = null;
-		byte[] a = CheckingInput.stringToByteArray(clearText);//明文密码转字节数组
-		byte[] b = null;//新的KeyA
-		try {
-			b = pwdHandler(nKeyA, false);//先填充
-//			System.out.println(String.copyValueOf(MainProgram.keyA.getPassword()));
-		} catch (UnsupportedEncodingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}//keyA
-		try {
-			SecretKeySpec keySpec = new SecretKeySpec(b, ENCRY_ALGORITHM);
-			IvParameterSpec iv = new IvParameterSpec(pwdHandler(nKeyB, true));//新的KeyB
-			Cipher cipher = Cipher.getInstance(CIPHER_MODE);
-			cipher.init(Cipher.ENCRYPT_MODE, keySpec, iv);
-			byte[] cipherTextBytes = cipher.doFinal(a);
-			encoded = byte2hex(cipherTextBytes);//加密
-		} catch (NoSuchPaddingException e) {
-			System.out.println("加密失败!");
-		} catch (NoSuchAlgorithmException e) {
-			System.out.println("加密失败!");
-		} catch (BadPaddingException e) {
-			System.out.println("加密失败!");
-		} catch (IllegalBlockSizeException e) {
-			System.out.println("加密失败!");
-		} catch (InvalidKeyException e) {
-			System.out.println("加密失败!");
-		} catch (Exception e) {
-			System.out.println("加密失败!");
+	public String decode(String cipherText) {
+		if (cipherText == null || cipherText.isEmpty()) {
+			throw new CryptoException("密文为空");
 		}
-		return encoded;
+		String keyA = getKeyAFromUi();
+		String keyB = getKeyBFromUi();
+
+		if (cipherText.startsWith(V2_PREFIX)) {
+			byte[] plainBytes = decryptV2(cipherText, keyA, keyB);
+			return CheckingInput.byteArrayToStr(plainBytes);
+		}
+
+		// 旧格式：hex(密文)，KeyA 为密钥，KeyB 为 IV
+		byte[] cipherBytes = hexToBytes(cipherText);
+		byte[] keyBytes = legacyKeyFromPassword(keyA);
+		byte[] ivBytes = legacyKeyFromPassword(keyB);
+		if (keyBytes == null || ivBytes == null) {
+			throw new CryptoException("密钥 KeyA/KeyB 无效");
+		}
+		byte[] plainBytes = legacyDecrypt(cipherBytes, keyBytes, ivBytes);
+		return CheckingInput.byteArrayToStr(plainBytes);
 	}
-	
+
 	/**
-	 * Byte数组转十六进制字符串
-	 * 字节数组转成16进制字符串，用来保存AES加密后的内容，防止数据丢失
-	 * @param bytes byte[] 字节数组
-	 * @return String 十六进制字符串
+	 * 使用新密钥重新加密（更换密钥流程）。始终使用新格式（PBKDF2 + 随机 IV）。
 	 */
-	private static String byte2hex(byte[] bytes) { // 一个字节的数，
+	public static String ckeyEncode(String clearText, String newKeyA, String newKeyB) {
+		byte[] plainBytes = CheckingInput.stringToByteArray(clearText);
+		if (plainBytes == null) {
+			throw new CryptoException("明文转字节失败");
+		}
+		// 若旧密文带 "v2:"，先解密再加密会得到明文；这里 clearText 在调用方已是解密后的明文
+		return encryptV2(plainBytes, newKeyA, newKeyB);
+	}
+
+	// ---------- 工具方法 ----------
+
+	private static String bytesToHex(byte[] bytes) {
+		if (bytes == null) {
+			throw new IllegalArgumentException("bytes 不能为 null");
+		}
 		StringBuilder sb = new StringBuilder(bytes.length * 2);
-		String tmp = "";
-		for (byte aByte : bytes) {
-			// 整数转成十六进制表示
-			tmp = (Integer.toHexString(aByte & 0XFF));
-			if (tmp.length() == 1) {
-				sb.append("0");
-			}
-			sb.append(tmp);
+		for (byte b : bytes) {
+			String hex = Integer.toHexString(b & 0xFF);
+			if (hex.length() == 1) sb.append('0');
+			sb.append(hex);
 		}
-		return sb.toString().toUpperCase(); // 转成大写
+		return sb.toString().toUpperCase();
 	}
-	
-	/**
-	 * Byte数组转十六进制字符串
-	 * 读取hex字符串转换成字节数组 ，用来解码AES加密后的内容
-	 * @param str String 十六进制字符串
-	 * @return byte[] 字节数组
-	 */
-	private static byte[] hex2byte(String str) {
-		if (str == null || str.length() < 2) {
+
+	private static byte[] hexToBytes(String hex) {
+		if (hex == null || hex.length() < 2) {
 			return new byte[0];
 		}
-		str = str.toLowerCase();
-		int l = str.length() / 2;
-		byte[] result = new byte[l];
-		for (int i = 0; i < l; ++i) {
-			String tmp = str.substring(2 * i, 2 * i + 2);
-			result[i] = (byte) (Integer.parseInt(tmp, 16) & 0xFF);
+		hex = hex.toLowerCase();
+		int len = hex.length() / 2;
+		byte[] result = new byte[len];
+		for (int i = 0; i < len; i++) {
+			String pair = hex.substring(2 * i, 2 * i + 2);
+			result[i] = (byte) (Integer.parseInt(pair, 16) & 0xFF);
 		}
 		return result;
 	}

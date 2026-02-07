@@ -1,0 +1,66 @@
+# 使用 GraalVM 为 Windows / Linux / macOS 构建原生可执行文件（手动触发）
+name: GraalVM Native Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact_name: PEncoder-linux-x64
+          - os: windows-latest
+            artifact_name: PEncoder-windows-x64
+          - os: macos-latest
+            # GitHub 当前 macos-latest 多为 ARM64 (Apple Silicon)
+            artifact_name: PEncoder-macos-aarch64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm-community'
+          components: 'native-image'
+          cache: 'maven'
+
+      - name: Compile module
+        run: |
+          mkdir -p bin
+          javac --module-source-path src -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8
+
+      - name: Build native image
+        run: |
+          native-image --module-path bin \
+            -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher \
+            -o PEncoder --no-fallback
+        shell: bash
+
+      - name: Collect artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir -p dist
+          cp PEncoder.exe dist/
+        shell: bash
+
+      - name: Collect artifact (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mkdir -p dist
+          cp PEncoder dist/
+          chmod +x dist/PEncoder
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/

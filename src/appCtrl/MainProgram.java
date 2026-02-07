@@ -1,6 +1,7 @@
 package appCtrl;
 
 import algorithmSettings.AEScoder;
+import algorithmSettings.CryptoException;
 import fileCtrl.CheckingInput;
 import fileCtrl.ExportAsXlsFile;
 import fileCtrl.ReadPEncoderDB;
@@ -12,57 +13,111 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.PlainDocument;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.prefs.Preferences;
+
+import javax.swing.KeyStroke;
 
 import static java.lang.String.format;
 
 /**
  * Description:程序主要控制器
  * Program Name:PEncoder
- * Date:2022-08-08
+ * Date:2026-02-07
  * @author Jessie justaaaa@163.com
- * @version 2.2
+ * @version 2.3
  */
 public class MainProgram {
-	public final static String VERSION="2.2";
-	public final static String UPDATE="2022-08-08";
-	// 创建及设置窗口
-	private final JFrame mainWindow = new JFrame(format("PEncoder v%s -- by Jessie", VERSION));// 标题
-	// 界面按钮
-	private final JButton run = new JButton("运行");
-	private final JButton copy = new JButton("复制");
-	private final JButton edit = new JButton("编辑");
+	public final static String VERSION = "2.3";
+	public final static String UPDATE = "2026-02-07";
 
-//	菜单栏
+	private static Locale currentLocale = Locale.getDefault().getLanguage().startsWith("zh") ? Locale.SIMPLIFIED_CHINESE : Locale.ENGLISH;
+	private static ResourceBundle bundle;
+
+	/** 在命名模块中不能用 Control，改为用 UTF-8 手动加载同包下的 properties。 */
+	private static ResourceBundle loadBundleForLocale(Locale locale) throws IOException {
+		String name = Locale.SIMPLIFIED_CHINESE.equals(locale) ? "Messages_zh_CN.properties" : "Messages_en.properties";
+		try (InputStream is = MainProgram.class.getResourceAsStream(name)) {
+			if (is == null) {
+				throw new IOException("Resource not found: " + name);
+			}
+			return new java.util.PropertyResourceBundle(new InputStreamReader(is, StandardCharsets.UTF_8));
+		}
+	}
+
+	private static ResourceBundle getBundle() {
+		if (bundle == null) {
+			try {
+				bundle = loadBundleForLocale(currentLocale);
+			} catch (Exception e) {
+				throw new RuntimeException("Failed to load resource bundle", e);
+			}
+		}
+		return bundle;
+	}
+
+	private static void reloadBundle() {
+		try {
+			bundle = loadBundleForLocale(currentLocale);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to load resource bundle", e);
+		}
+	}
+
+	private static String msg(String key) {
+		try {
+			return getBundle().getString(key);
+		} catch (Exception e) {
+			return key;
+		}
+	}
+
+	private final JFrame mainWindow = new JFrame();
+	private final JButton run = new JButton();
+	private final JButton copy = new JButton();
+	private final JButton edit = new JButton();
+
 	private final JMenuBar menubar = new JMenuBar();
-	private final JMenu options = new JMenu("选项");
-	private final JMenu file = new JMenu("文件");
-	private final JMenu help = new JMenu("帮助");
-	private final JMenuItem popM = new JMenuItem("What do you want?");
-//	右击菜单
+	private final JMenu options = new JMenu();
+	private final JMenu file = new JMenu();
+	private final JMenu help = new JMenu();
+	private final JMenuItem popM = new JMenuItem();
 	private final JPopupMenu pop = new JPopupMenu();
-//	菜单项目
-	private final JMenuItem changeKeys = new JMenuItem("更换密钥");
-	private final JMenuItem top = new JMenuItem("窗口置顶/取消置顶");
-	private final JMenuItem manual = new JMenuItem("如何使用");
-	private final JMenuItem about = new JMenuItem("关于");
-	private final JMenuItem export = new JMenuItem("导出");
-	private final JMenuItem exit = new JMenuItem("退出");
-	private final JMenuItem EN = new JMenuItem("编码DBbak文件");
-	private final JMenuItem DE = new JMenuItem("解码DB文件");
-	private final JMenuItem newfile = new JMenuItem("新建DBbak文件");
+	private final JMenuItem changeKeys = new JMenuItem();
+	private final JMenuItem top = new JMenuItem();
+	private final JMenuItem manual = new JMenuItem();
+	private final JMenuItem about = new JMenuItem();
+	private final JMenuItem export = new JMenuItem();
+	private final JMenuItem exit = new JMenuItem();
+	private final JMenuItem EN = new JMenuItem();
+	private final JMenuItem DE = new JMenuItem();
+	private final JMenuItem newfile = new JMenuItem();
+	private final JMenu langMenu = new JMenu();
+	private final JMenuItem langZh = new JMenuItem();
+	private final JMenuItem langEn = new JMenuItem();
+	private final JCheckBoxMenuItem autoEncodeOnExitItem = new JCheckBoxMenuItem();
+	private final JMenuItem chooseBakEditorItem = new JMenuItem();
 
-//	定义单选按钮，初始处于加密
-	private final JRadioButton encoderButton = new JRadioButton("加密", true);
-	private final JRadioButton decoderButton = new JRadioButton("解密", false);
-	private final JRadioButton isPwdInCleartext = new JRadioButton("隐藏", false);
+	private static final String PREF_AUTO_ENCODE_ON_EXIT = "autoEncodeBakToDbOnExit";
+	private static final String PREF_BAK_EDITOR = "bakEditorPath";
+	private static final String BAK_FILENAME = "PEncoderDatabasebak";
+	private static final String DB_FILENAME = "PEncoderDatabase";
+	private static final String BACKUP_SUFFIX = ".backup";
+
+	private final JRadioButton encoderButton = new JRadioButton();
+	private final JRadioButton decoderButton = new JRadioButton();
+	private final JRadioButton isPwdInCleartext = new JRadioButton();
 //	按钮组合
 	private final ButtonGroup modeSelect = new ButtonGroup();
 
@@ -73,118 +128,365 @@ public class MainProgram {
 	private final JTextArea outputArea = new JTextArea(4, 38);
 	private final JTextArea console = new JTextArea(10, 38);
 
-	private static final String INFO_OUTPUTAREA = "———————运行结果将显示在这里———————";
 	private static final char defaultChar = '●';
 	public static boolean isItSemicolon = false;
 	private static String cKeyInput = null;
 
-	/**
-	 * 打开密码文件
-	 * 用于编辑按钮的打开文件，Windows下用记事本（1903版本以上）。Linux下用Gedit
-	 * @throws InterruptedException 忽略异常
-	 */
-	private static void openDBFile() throws InterruptedException {
+	/** 根据当前语言更新所有界面文案。 */
+	private void updateUITexts() {
+		mainWindow.setTitle(format(msg("window.title"), VERSION));
+		run.setText(msg("btn.run"));
+		copy.setText(msg("btn.copy"));
+		edit.setText(msg("btn.edit"));
+		file.setText(msg("menu.file"));
+		options.setText(msg("menu.options"));
+		help.setText(msg("menu.help"));
+		newfile.setText(msg("menu.newfile"));
+		newfile.setToolTipText(msg("tip.menu.newfile"));
+		EN.setText(msg("menu.encode"));
+		EN.setToolTipText(msg("tip.menu.encode"));
+		DE.setText(msg("menu.decode"));
+		DE.setToolTipText(msg("tip.menu.decode"));
+		exit.setText(msg("menu.exit"));
+		exit.setToolTipText(msg("tip.menu.exit"));
+		export.setText(msg("menu.export"));
+		export.setToolTipText(msg("tip.menu.export"));
+		top.setText(msg("menu.top"));
+		top.setToolTipText(msg("tip.menu.top"));
+		changeKeys.setText(msg("menu.changeKeys"));
+		changeKeys.setToolTipText(msg("tip.menu.changeKeys"));
+		manual.setText(msg("menu.manual"));
+		manual.setToolTipText(msg("tip.menu.manual"));
+		about.setText(msg("menu.about"));
+		about.setToolTipText(msg("tip.menu.about"));
+		langMenu.setText(msg("menu.lang"));
+		langZh.setText(msg("menu.lang_zh"));
+		langZh.setToolTipText(msg("tip.menu.lang_zh"));
+		langEn.setText(msg("menu.lang_en"));
+		langEn.setToolTipText(msg("tip.menu.lang_en"));
+		autoEncodeOnExitItem.setText(msg("menu.auto_encode_on_exit"));
+		autoEncodeOnExitItem.setToolTipText(msg("tip.menu.auto_encode_on_exit"));
+		chooseBakEditorItem.setText(msg("menu.choose_bak_editor"));
+		chooseBakEditorItem.setToolTipText(msg("tip.menu.choose_bak_editor"));
+		popM.setText(msg("pop.what"));
+		encoderButton.setText(msg("radio.encrypt"));
+		decoderButton.setText(msg("radio.decrypt"));
+		isPwdInCleartext.setText(msg("radio.hide"));
+		outputArea.setText(msg("area.output_placeholder"));
+		if (workPanel != null) {
+			workPanel.setBorder(BorderFactory.createTitledBorder(msg("border.work")));
+		}
+		if (consolePanel != null) {
+			consolePanel.setBorder(BorderFactory.createTitledBorder(msg("border.log")));
+		}
+		if (keyALabel != null) keyALabel.setText(msg("label.keyA"));
+		if (keyBLabel != null) keyBLabel.setText(msg("label.keyB"));
+		if (inputLabel != null) inputLabel.setText(msg("label.input"));
+		if (outputLabel != null) outputLabel.setText(msg("label.output"));
+	}
+
+	private JPanel workPanel;
+	private JScrollPane consolePanel;
+	private JLabel keyALabel;
+	private JLabel keyBLabel;
+	private JLabel inputLabel;
+	private JLabel outputLabel;
+
+	/** 备份指定文件到同目录下的 文件名.backup，若原文件存在则覆盖备份。 */
+	private static void backupFile(String fileName) throws IOException {
+		String dir = "." + File.separator;
+		File src = new File(dir + fileName);
+		if (!src.exists()) {
+			return;
+		}
+		File dest = new File(dir + fileName + BACKUP_SUFFIX);
+		Files.copy(src.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+		System.out.println(format(msg("dialog.backup_done"), fileName + BACKUP_SUFFIX));
+	}
+
+	/** 执行退出流程：若勾选“退出时自动编码”，则先备份再编码，失败时询问是否仍退出。 */
+	private void doExit() {
+		boolean wasOnTop = mainWindow.isAlwaysOnTop();
+		if (wasOnTop) {
+			mainWindow.setAlwaysOnTop(false);
+		}
+		int confirm = JOptionPane.showConfirmDialog(mainWindow, msg("dialog.confirm_exit"), msg("dialog.warning"),
+				JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+		if (confirm != JOptionPane.YES_OPTION) {
+			if (wasOnTop) mainWindow.setAlwaysOnTop(true);
+			System.out.println("返回主界面");
+			return;
+		}
+		if (autoEncodeOnExitItem.isSelected()) {
+			try {
+				backupFile(BAK_FILENAME);
+				backupFile(DB_FILENAME);
+				ReadPEncoderDB.encodeDB();
+				System.out.println(msg("dialog.exit_encode_ok"));
+			} catch (Exception e) {
+				String errMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+				int exitAnyway = JOptionPane.showConfirmDialog(mainWindow,
+						format(msg("dialog.exit_encode_fail"), errMsg), msg("dialog.error"),
+						JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE);
+				if (exitAnyway != JOptionPane.YES_OPTION) {
+					if (wasOnTop) mainWindow.setAlwaysOnTop(true);
+					return;
+				}
+			}
+		}
+		if (wasOnTop) {
+			mainWindow.setAlwaysOnTop(false);
+		}
+		mainWindow.dispose();
+		System.exit(0);
+	}
+
+	private static boolean getAutoEncodeOnExitPreference() {
 		try {
-			String fileSeparator = File.separator;
-			File notepad = new File("C:\\WINDOWS\\system32\\notepad.exe");
-			if (notepad.exists() || Objects.equals(fileSeparator, "\\")) {
-				Runtime.getRuntime().exec("C:\\WINDOWS\\system32\\notepad.exe .\\PEncoderDatabasebak");
+			return Preferences.userNodeForPackage(MainProgram.class).getBoolean(PREF_AUTO_ENCODE_ON_EXIT, false);
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	private static void setAutoEncodeOnExitPreference(boolean value) {
+		try {
+			Preferences.userNodeForPackage(MainProgram.class).putBoolean(PREF_AUTO_ENCODE_ON_EXIT, value);
+		} catch (Exception ignored) {
+		}
+	}
+
+	/** 跨平台：检测当前系统可用的编辑器，返回 [显示名, 可执行路径] 列表；首项为“系统默认”（路径为空）。 */
+	private static List<String[]> detectAvailableEditors() {
+		List<String[]> out = new ArrayList<>();
+		String os = System.getProperty("os.name", "").toLowerCase();
+		boolean win = os.contains("win");
+		boolean mac = os.contains("mac");
+
+		out.add(new String[]{msg("editor.default"), ""});
+
+		if (win) {
+			out.add(new String[]{"Notepad", "notepad.exe"});
+			String pf = System.getenv("ProgramFiles");
+			String pf86 = System.getenv("ProgramFiles(x86)");
+			if (pf != null) {
+				tryAddPath(out, pf + "\\Notepad++\\notepad++.exe", "Notepad++");
+				tryAddPath(out, pf + "\\Microsoft VS Code\\Code.exe", "VS Code");
+			}
+			if (pf86 != null) {
+				tryAddPath(out, pf86 + "\\Notepad++\\notepad++.exe", "Notepad++");
+			}
+			String local = System.getenv("LOCALAPPDATA");
+			if (local != null) {
+				tryAddPath(out, local + "\\Programs\\Microsoft VS Code\\Code.exe", "VS Code");
+			}
+		} else if (mac) {
+			tryAddPath(out, "/Applications/TextEdit.app/Contents/MacOS/TextEdit", "TextEdit");
+			resolveViaWhich(out, "nano", "nano");
+			resolveViaWhich(out, "vim", "Vim");
+			resolveViaWhich(out, "code", "VS Code");
+		} else {
+			// Linux 等
+			resolveViaWhich(out, "gedit", "gedit");
+			resolveViaWhich(out, "kate", "Kate");
+			resolveViaWhich(out, "xed", "xed");
+			resolveViaWhich(out, "nano", "nano");
+			resolveViaWhich(out, "vim", "Vim");
+			resolveViaWhich(out, "code", "VS Code");
+		}
+		return out;
+	}
+
+	private static void tryAddPath(List<String[]> out, String path, String displayName) {
+		if (path == null || path.isBlank()) return;
+		File f = new File(path);
+		if (f.exists() && !containsPath(out, path)) {
+			out.add(new String[]{displayName, f.getAbsolutePath()});
+		}
+	}
+
+	private static boolean containsPath(List<String[]> list, String path) {
+		for (String[] pair : list) {
+			if (pair.length >= 2 && path.equals(pair[1])) return true;
+		}
+		return false;
+	}
+
+	/** Unix/Linux/macOS：用 which 解析命令路径，若存在则加入列表。 */
+	private static void resolveViaWhich(List<String[]> out, String command, String displayName) {
+		String path = which(command);
+		if (path != null && !path.isBlank() && !containsPath(out, path)) {
+			out.add(new String[]{displayName, path});
+		}
+	}
+
+	private static String which(String command) {
+		try {
+			ProcessBuilder pb = new ProcessBuilder("which", command);
+			pb.redirectErrorStream(true);
+			Process p = pb.start();
+			String line;
+			try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+				line = r.readLine();
+			}
+			int exit = p.waitFor();
+			if (exit == 0 && line != null && !line.isBlank()) {
+				return line.trim();
+			}
+		} catch (Exception ignored) {
+		}
+		return null;
+	}
+
+	/** 弹出列表选择编辑器（系统检测到的 + 浏览），保存到 Preferences。 */
+	private void chooseBakEditor() {
+		List<String[]> editors = detectAvailableEditors();
+		String[] labels = new String[editors.size() + 1];
+		int i = 0;
+		for (String[] pair : editors) {
+			labels[i++] = pair[0];
+		}
+		labels[i] = msg("editor.browse");
+		String current = getBakEditorPath();
+		int currentIndex = 0;
+		for (int j = 0; j < editors.size(); j++) {
+			if (editors.get(j).length >= 2 && editors.get(j)[1].equals(current)) {
+				currentIndex = j;
+				break;
+			}
+		}
+		Object choice = JOptionPane.showInputDialog(mainWindow, msg("dialog.choose_editor_prompt"),
+				msg("dialog.choose_editor_title"), JOptionPane.QUESTION_MESSAGE, null, labels, labels[currentIndex]);
+		if (choice == null) return;
+		String selected = (String) choice;
+		if (msg("editor.browse").equals(selected)) {
+			JFileChooser fc = new JFileChooser();
+			fc.setDialogTitle(msg("dialog.choose_editor_title"));
+			if (File.separator.equals("\\")) {
+				fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Executable (*.exe)", "exe"));
+			}
+			if (fc.showOpenDialog(mainWindow) == JFileChooser.APPROVE_OPTION && fc.getSelectedFile() != null) {
+				String path = fc.getSelectedFile().getAbsolutePath();
+				setBakEditorPath(path);
+				JOptionPane.showMessageDialog(mainWindow, format(msg("dialog.editor_saved"), path), msg("dialog.warning"), JOptionPane.INFORMATION_MESSAGE);
+			}
+			return;
+		}
+		for (String[] pair : editors) {
+			if (pair[0].equals(selected)) {
+				setBakEditorPath(pair.length >= 2 ? pair[1] : "");
+				String show = pair.length >= 2 && !pair[1].isBlank() ? pair[1] : msg("editor.default");
+				JOptionPane.showMessageDialog(mainWindow, format(msg("dialog.editor_saved"), show), msg("dialog.warning"), JOptionPane.INFORMATION_MESSAGE);
+				return;
+			}
+		}
+	}
+
+	/** 解码 DB 为 bak（菜单或 Ctrl+D 触发）。 */
+	private void runDecodeDB() {
+		try {
+			System.out.println("正在解码DB文件……");
+			ReadPEncoderDB.decodeDB();
+		} catch (CryptoException e1) {
+			System.out.println("解码失败: " + e1.getMessage());
+			JOptionPane.showMessageDialog(mainWindow, "解码失败: " + e1.getMessage(), msg("dialog.error"), JOptionPane.ERROR_MESSAGE);
+		} catch (IOException e1) {
+			System.out.println("文件操作失败: " + e1.getMessage());
+			JOptionPane.showMessageDialog(mainWindow, "文件操作失败: " + e1.getMessage(), msg("dialog.error"), JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	/** 读取用户设置的 bak 编辑器路径，空表示使用系统默认。 */
+	private static String getBakEditorPath() {
+		try {
+			String p = Preferences.userNodeForPackage(MainProgram.class).get(PREF_BAK_EDITOR, "");
+			return (p == null || p.isBlank()) ? "" : p.trim();
+		} catch (Exception e) {
+			return "";
+		}
+	}
+
+	/** 保存用户设置的 bak 编辑器路径。 */
+	private static void setBakEditorPath(String path) {
+		try {
+			Preferences.userNodeForPackage(MainProgram.class).put(PREF_BAK_EDITOR, path == null ? "" : path.trim());
+		} catch (Exception ignored) {
+		}
+	}
+
+	/**
+	 * 打开 bak 文件：若用户已设置编辑器则用该程序打开，否则按平台使用默认（Windows 记事本 / Linux gedit / macOS TextEdit）。
+	 */
+	private void openDBFile() {
+		String path = "." + File.separator + BAK_FILENAME;
+		String editor = getBakEditorPath();
+		try {
+			if (editor != null && !editor.isBlank()) {
+				Runtime.getRuntime().exec(new String[]{editor, path});
 			} else {
-				Runtime.getRuntime().exec("gedit ./PEncoderDatabasebak");// .waitFor()
+				String os = System.getProperty("os.name", "").toLowerCase();
+				if (os.contains("win")) {
+					Runtime.getRuntime().exec(new String[]{"notepad.exe", path});
+				} else if (os.contains("mac")) {
+					Runtime.getRuntime().exec(new String[]{"open", "-e", path});
+				} else {
+					Runtime.getRuntime().exec(new String[]{"gedit", path});
+				}
 			}
 		} catch (IOException e1) {
-			System.out.println("打开失败！请检查DB文件或TXT[Windows]、Gedit[Linux]路径。");
+			System.out.println("打开失败！请检查 bak 文件是否存在，或在选项中指定可用编辑器。");
 			e1.printStackTrace();
 		}
 	}
 
 	/**
-	 * 复制到剪辑版
-	 * 复制加密、解密内容到剪辑版上
+	 * 将文本复制到系统剪贴板。
+	 *
 	 * @param text 要复制的文字
 	 */
-	private static void copyToClickboard(String text) {
-		String ret = "";
-		Clipboard sysClip = Toolkit.getDefaultToolkit().getSystemClipboard();
-		// 获取剪切板中的内容
-		Transferable clipTf = sysClip.getContents(null);
-		if (clipTf != null) {
-			// 检查内容是否是文本类型
-			if (clipTf.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-				try {
-					ret = (String) clipTf.getTransferData(DataFlavor.stringFlavor);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+	private static void copyToClipboard(String text) {
+		if (text == null) {
+			return;
 		}
-		if (!ret.equals(text)) {
-			Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-			// 封装文本内容
-			Transferable trans = new StringSelection(text);
-			// 把文本内容设置到系统剪贴板
-			clipboard.setContents(trans, null);
-		}
-		System.out.println("已复制到剪辑板。");
+		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+		clipboard.setContents(new StringSelection(text), null);
+		System.out.println("已复制到剪贴板。");
 	}
 
 	/**
 	 * 控制台信息
 	 * 显示程序运行日志
 	 */
+	/** 将 System.out/err 重定向到日志区，便于在界面查看。 */
 	private void outputUI() {
-		// 捕获控制台输出到GUI界面上
 		OutputStream textAreaStream = new OutputStream() {
+			@Override
 			public void write(int b) {
 				console.append(String.valueOf((char) b));
 			}
-			public void write(byte[] b) {
-				console.append(new String(b));
-			}
+			@Override
 			public void write(byte[] b, int off, int len) {
-				console.append(new String(b, off, len));
+				console.append(new String(b, off, len, StandardCharsets.UTF_8));
 			}
 		};
-		PrintStream myOut = new PrintStream(textAreaStream);
-		System.setOut(myOut);
-//		dbc.setBounds(1ut);
-		System.setErr(myOut);
+		System.setOut(new PrintStream(textAreaStream));
+		System.setErr(new PrintStream(textAreaStream));
 	}
 
-	/**
-	 * 计时器进度条
-	 * 无用功能，不要在意
-	 */
-	private class TimePro {
-		Timer timer;
-		
+	/** 右键彩蛋：进度条（无实际业务）。 */
+	private static class TimePro {
+		private Timer timer;
+
 		void init() {
-			final SimulatedActivity target = new SimulatedActivity(100);
-			// 以启动一条线程的方式来执行一个耗时的任务
-			final Thread targetThread = new Thread(target);
-			targetThread.start();
-			final ProgressMonitor dialog = new ProgressMonitor(null, "等待任务完成", "已完成：", 0, target.getAmount());
+			SimulatedActivity target = new SimulatedActivity(100);
+			Thread worker = new Thread(target);
+			worker.start();
+			ProgressMonitor dialog = new ProgressMonitor(null, msg("progress.wait"), msg("progress.done"), 0, target.getAmount());
 			timer = new Timer(300, e -> {
-				// 以任务的当前完成量设置进度对话框的完成比例
 				dialog.setProgress(target.getCurrent());
-				// 如果用户单击了进度对话框的"取消"按钮
-				try {
-					if (dialog.isCanceled()) {
-						// 停止计时器
-						timer.stop();
-						// 中断任务的执行线程
-						targetThread.interrupt();// ①
-						for (int i = 50; i > 0; i--) {
-							for (int j = 0; j < i; j++) {
-								System.out.print("?");
-							}
-							System.out.println();
-						}
-						throw new Exception("踢出");
-						// 系统退出
-//						System.exit(0);
-					}
-				} catch (Exception e1) {
+				if (dialog.isCanceled()) {
+					timer.stop();
+					worker.interrupt();
 					System.out.println("提前结束。");
 				}
 			});
@@ -193,79 +495,67 @@ public class MainProgram {
 	}
 
 	/**
-	 * 更换密钥功能
-	 * 用于更换密钥
+	 * 更换密钥：读取 bak 文件，用当前密钥解密每条密码，再用新密钥加密并写回 bakNEW。
 	 */
-	private static void ChangingKey() {
-		String[] key = new String[2];
-		List<String> a = new ArrayList<>();
-		List<String> b = new ArrayList<>();
-		List<String> c = new ArrayList<>();
-		List<String> d = new ArrayList<>();
-		StringBuilder readResult = new StringBuilder();
-		String lineTxt;
-		String bakSep = ":";
+	private static void changeKeys() {
+		if (cKeyInput == null || cKeyInput.isBlank()) {
+			System.out.println("未输入新密钥或已取消。");
+			return;
+		}
+		String[] keySplit = cKeyInput.split("/");
+		if (keySplit.length != 2) {
+			JOptionPane.showMessageDialog(null, msg("dialog.changekey_format"), msg("dialog.warning"), JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+		String newKeyA = keySplit[0].trim();
+		String newKeyB = keySplit[1].trim();
+		if (!CheckingInput.inputFilter(newKeyA, false) || !CheckingInput.inputFilter(newKeyB, false)) {
+			JOptionPane.showMessageDialog(null, msg("dialog.changekey_invalid"), msg("dialog.error"), JOptionPane.ERROR_MESSAGE);
+			return;
+		}
 		String fs = File.separator;
 		String bakpath = "." + fs + "PEncoderDatabasebak";
-		try {
-			String[] keySplit = cKeyInput.split("/");
-			if (!CheckingInput.inputFilter(cKeyInput, false)) {
-				System.out.println("含有非法字符！");
-				throw new Exception("非法字符");
-			} else {
-				key[0] = keySplit[0];
-				key[1] = keySplit[1];
-			}
-		} catch (Exception e1) {
-			System.out.println("请检查输入的新密钥合法性！");
-		}
 		File bak = new File(bakpath);
+		if (!bak.exists()) {
+			JOptionPane.showMessageDialog(null, msg("dialog.file_bak_not_found"), msg("dialog.error"), JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		List<String> platforms = new ArrayList<>();
+		List<String> accounts = new ArrayList<>();
+		List<String> passwords = new ArrayList<>();
+		List<String> remarks = new ArrayList<>();
+		String bakSep = ":";
 		try {
-			if (!bak.exists()) {
-				System.out.println("文件不存在");
-			} else {
-				System.out.println("为以防万一，原bak文件不会被覆盖，请手动删除谢谢。");
-				InputStreamReader read = new InputStreamReader(new FileInputStream(bakpath), StandardCharsets.UTF_8);// 考虑到编码格式
-				BufferedReader bufferedReader = new BufferedReader(read);
-				while ((lineTxt = bufferedReader.readLine()) != null) {
-					String[] split = lineTxt.split(bakSep);
-					a.add(split[0]);
-					b.add(split[1]);
-					c.add(split[2]);
-					d.add(split[3]);
+			System.out.println("为以防万一，原 bak 文件不会被覆盖，请手动删除谢谢。");
+			try (BufferedReader reader = new BufferedReader(
+					new InputStreamReader(new FileInputStream(bakpath), StandardCharsets.UTF_8))) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					String[] split = line.split(bakSep);
+					if (split.length >= 4) {
+						platforms.add(split[0]);
+						accounts.add(split[1]);
+						passwords.add(split[2]);
+						remarks.add(split[3]);
+					}
 				}
-//				for (String string : a) {
-//					System.out.println(string);
-//				}
-//				for (String string : b) {
-//					System.out.println(string);
-//				}
-//				for (String string : c) {
-//					System.out.println(string);
-//				}
-//				for (String string : d) {
-//					System.out.println(string);
-//				}
-				for (int i = 0; i < c.size(); i++) {
-					IfPwdCoder ipc = new AEScoder();
-					String x = ipc.decoder(c.get(i));// 解密
-					x = AEScoder.ckeyEncode(x, key[0], key[1]);// 再加密
-					c.set(i, x);
-				}
-				for (int i = 0; i < a.size(); i++) {
-					String aa = a.get(i);
-					String bb = b.get(i);
-					String cc = c.get(i);
-					String dd = d.get(i);
-//					System.out.println(aa);
-					readResult.append(aa).append(":").append(bb).append(":").append(cc).append(":").append(dd).append("\n");
-				}
-//				System.out.println(readResult);
-				ReadPEncoderDB.writeToText(readResult.toString(), bakpath + "NEW");
-				bufferedReader.close();
 			}
+			IfPwdCoder coder = new AEScoder();
+			for (int i = 0; i < passwords.size(); i++) {
+				String plain = coder.decode(passwords.get(i));
+				passwords.set(i, AEScoder.ckeyEncode(plain, newKeyA, newKeyB));
+			}
+			StringBuilder out = new StringBuilder();
+			for (int i = 0; i < platforms.size(); i++) {
+				out.append(platforms.get(i)).append(":").append(accounts.get(i))
+						.append(":").append(passwords.get(i)).append(":").append(remarks.get(i)).append("\n");
+			}
+			ReadPEncoderDB.writeToText(out.toString(), bakpath + "NEW");
+		} catch (CryptoException e1) {
+			System.out.println("更换密钥失败: " + e1.getMessage());
+			JOptionPane.showMessageDialog(null, "更换密钥失败: " + e1.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
 		} catch (Exception e1) {
-			System.out.println("Quit.");
+			System.out.println("操作失败: " + e1.getMessage());
 		}
 	}
 
@@ -293,16 +583,15 @@ public class MainProgram {
 		mainWindow.setLayout(null);
 		mainWindow.setResizable(false);
 
-//		创建JPanel
-		JPanel workPanel = new JPanel();
+		workPanel = new JPanel();
 		workPanel.setLayout(null);
-		JScrollPane consolePanel = new JScrollPane(console);
+		consolePanel = new JScrollPane(console);
 		workPanel.setFont(f);
 		consolePanel.setFont(f);
 		workPanel.setBounds(0, 0, 400, 340);
 		consolePanel.setBounds(0, 340, 400, 200);
-		workPanel.setBorder(BorderFactory.createTitledBorder("工作区"));
-		consolePanel.setBorder(BorderFactory.createTitledBorder("日志"));
+		workPanel.setBorder(BorderFactory.createTitledBorder(msg("border.work")));
+		consolePanel.setBorder(BorderFactory.createTitledBorder(msg("border.log")));
 //		workPanel.setFont(p);
 //		consolePanel.setFont(p);
 		mainWindow.add(workPanel);
@@ -319,7 +608,7 @@ public class MainProgram {
 		file.add(DE);
 		file.add(exit);
 		menubar.add(options);
-		menubar.setFont(f);// 设置JLabel的字体
+		menubar.setFont(f);
 		options.setFont(f);
 		options.add(export);
 		options.add(top);
@@ -327,6 +616,17 @@ public class MainProgram {
 		export.setFont(f);
 		options.add(changeKeys);
 		changeKeys.setFont(f);
+		autoEncodeOnExitItem.setFont(f);
+		autoEncodeOnExitItem.setSelected(getAutoEncodeOnExitPreference());
+		options.add(autoEncodeOnExitItem);
+		chooseBakEditorItem.setFont(f);
+		options.add(chooseBakEditorItem);
+		langMenu.setFont(f);
+		langMenu.add(langZh);
+		langZh.setFont(f);
+		langMenu.add(langEn);
+		langEn.setFont(f);
+		options.add(langMenu);
 		exit.setFont(f);
 		menubar.add(help);
 		help.setFont(f);
@@ -336,14 +636,13 @@ public class MainProgram {
 		about.setFont(f);
 		mainWindow.setJMenuBar(menubar);// 为f窗口设置菜单条
 
-//		设置工作区--------------------------------------------------------------
-		JLabel keyALabel = new JLabel("Key-A:");
+		keyALabel = new JLabel();
 		keyALabel.setFont(f);
-		JLabel keyBLabel = new JLabel("Key-B:");
+		keyBLabel = new JLabel();
 		keyBLabel.setFont(f);
-		JLabel inputLabel = new JLabel("输 入:");
+		inputLabel = new JLabel();
 		inputLabel.setFont(f);
-		JLabel outputLabel = new JLabel("输 出:");
+		outputLabel = new JLabel();
 		outputLabel.setFont(f);
 		keyA.setFont(f);
 		keyB.setFont(f);
@@ -366,25 +665,23 @@ public class MainProgram {
 //		outputLabel.setBorder(BorderFactory.createLineBorder(Color.red, 3));//调试用
 		inputArea.setBounds(70, 88, 319, 85);// 结果输入
 		outputArea.setBounds(70, 185, 319, 88);// 结果输出
-		outputArea.setEditable(false);// 输出面板不准编辑
-		outputArea.setText(INFO_OUTPUTAREA);
+		outputArea.setEditable(false);
 		outputArea.setForeground(Color.LIGHT_GRAY);
 		// 下面保证两个按钮只激活一个
 		modeSelect.add(encoderButton);
 		modeSelect.add(decoderButton);
 		encoderButton.setSelected(true);
 
-		if (fs.equals("\\")) {
-			encoderButton.setBounds(8, 274, 55, 20);
-			decoderButton.setBounds(8, 296, 55, 15);
-			isPwdInCleartext.setBounds(8, 311, 55, 20);
-		} else if (fs.equals("/")) {
-			encoderButton.setBounds(8, 274, 50, 20);
-			decoderButton.setBounds(8, 296, 50, 15);
-			isPwdInCleartext.setBounds(8, 311, 50, 20);
-		}
+		// 单选按钮：统一高度与间距，避免重叠或间距不一
+		int radioWidth = 95;
+		int radioHeight = 20;
+		int radioGap = 4;
+		int radioY = 274;
+		encoderButton.setBounds(8, radioY, radioWidth, radioHeight);
+		decoderButton.setBounds(8, radioY + radioHeight + radioGap, radioWidth, radioHeight);
+		isPwdInCleartext.setBounds(8, radioY + 2 * (radioHeight + radioGap), radioWidth, radioHeight);
 
-		edit.setBounds(70, 288, 75, 35);
+		edit.setBounds(108, 288, 75, 35);
 //		ebc.setBounds(100,300, 40, 35);
 //		dbc.setBounds(100,335, 40, 35);
 		edit.setFont(f);
@@ -413,27 +710,27 @@ public class MainProgram {
 
 //		设置日志区---------------------------------------------------------------
 //		console.setFont(f);//设置字体
-		console.setLineWrap(true); // 自动换行
-		console.setWrapStyleWord(true); // 单词完整保留
+		console.setLineWrap(true);
+		console.setWrapStyleWord(true);
 		console.setText("Welcome!\n");
 		console.setEditable(false);
 		outputUI();
 
+		updateUITexts();
+
 //		设置事件-----------------------------------------------------------------
 //		按钮事件=================================================================
-		edit.addActionListener(e -> {
-			try {
-				openDBFile();
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-		});
-		copy.addActionListener(e -> copyToClickboard(outputArea.getText()));
+		edit.addActionListener(e -> openDBFile());
+		copy.addActionListener(e -> copyToClipboard(outputArea.getText()));
 		run.addActionListener(e -> {
 			try {
 				outputArea.setText(null);
 				if (encoderButton.isSelected()) {
 					String a = CheckingInput.pwdAppend(inputArea.getText());
+					isItSemicolon = CheckingInput.wasLastRejectionSemicolon();
+					if (a == null) {
+						return;
+					}
 					IfPwdCoder encoding = new AEScoder();
 					String x = encoding.encode(a);
 					if (isItSemicolon) {
@@ -441,14 +738,13 @@ public class MainProgram {
 					} else {
 						outputArea.setText(x);
 					}
-//						outputArea.setText(encoding.encode(a));
 					System.out.println("——加密完成——");
 				} else if (decoderButton.isSelected()) {
 					String b = inputArea.getText();
 					IfPwdCoder decoding = new AEScoder();
-					String x = decoding.decoder(b);
+					String x = decoding.decode(b);
 					x = x.replaceAll(";", "");
-					if(x.contains("；")) {
+					if (x.contains("；")) {
 						x = x.replaceAll("；", ";");
 					}
 					outputArea.setText(x);
@@ -456,8 +752,11 @@ public class MainProgram {
 				} else {
 					System.out.println("运行出错。");
 				}
+			} catch (CryptoException e3) {
+				System.out.println("加解密失败: " + e3.getMessage());
+				JOptionPane.showMessageDialog(mainWindow, "加解密失败: " + e3.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
 			} catch (Exception e3) {
-				// TODO: handle exception
+				System.out.println("运行出错: " + e3.getMessage());
 			}
 		});
 		isPwdInCleartext.addActionListener(e -> {
@@ -489,50 +788,30 @@ public class MainProgram {
 			try {
 				System.out.println("正在编码bak文件……");
 				ReadPEncoderDB.encodeDB();
+			} catch (CryptoException e1) {
+				System.out.println("编码失败: " + e1.getMessage());
+				JOptionPane.showMessageDialog(mainWindow, "编码失败: " + e1.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
 			} catch (IOException e1) {
-//					e1.printStackTrace();
+				System.out.println("文件操作失败: " + e1.getMessage());
+				JOptionPane.showMessageDialog(mainWindow, "文件操作失败: " + e1.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
 			}
 		});
-		DE.addActionListener(e -> {
-			try {
-				System.out.println("正在解码DB文件……");
-				ReadPEncoderDB.decodeDB();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-//					e1.printStackTrace();
-			}
-		});
-		exit.addActionListener(e -> {
-			boolean t = mainWindow.isAlwaysOnTop();
-			if(t) {
-				mainWindow.setAlwaysOnTop(false);
-			}
-			int a = JOptionPane.showConfirmDialog(null, "确认退出?", "WARNING", JOptionPane.YES_NO_OPTION,
-					JOptionPane.WARNING_MESSAGE);
-//				System.out.println(a);
-			if (a == 0) {
-				System.exit(0);
-			} else {
-				System.out.println("返回主界面");
-			}
-			if(t) {
-				mainWindow.setAlwaysOnTop(true);
-			}
-		});
+		DE.addActionListener(e -> runDecodeDB());
+		DE.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK));
+		exit.addActionListener(e -> doExit());
 		
 		export.addActionListener(e -> {
 			boolean t = mainWindow.isAlwaysOnTop();
 			if(t) {
 				mainWindow.setAlwaysOnTop(false);
 			}
-			Object[] possibleValues = { "密码密文导出", "密码明文导出" };
+			Object[] possibleValues = { msg("dialog.export_cipher"), msg("dialog.export_plain") };
 			try {
-				Object selectedValue = JOptionPane.showInputDialog(null, "导出前请检查bak文件。", "以何种方式导出？",
+				Object selectedValue = JOptionPane.showInputDialog(null, msg("dialog.export_prompt"), msg("dialog.export_title"),
 						JOptionPane.INFORMATION_MESSAGE, null, possibleValues, possibleValues[0]);
-				if (selectedValue.equals(possibleValues[0])) {
+				if (selectedValue != null && selectedValue.equals(possibleValues[0])) {
 					ExportAsXlsFile.createCSV(false);
-//						System.out.println(selectedValue.equals(possibleValues[0]));
-				} else if (selectedValue.equals(possibleValues[1])) {
+				} else if (selectedValue != null && selectedValue.equals(possibleValues[1])) {
 					ExportAsXlsFile.createCSV(true);
 				} else {
 					System.out.println("ERROR!");
@@ -549,17 +828,28 @@ public class MainProgram {
 			}
 		});
 		top.addActionListener(e -> mainWindow.setAlwaysOnTop(!mainWindow.isAlwaysOnTop()));
+		autoEncodeOnExitItem.addActionListener(e -> setAutoEncodeOnExitPreference(autoEncodeOnExitItem.isSelected()));
+		chooseBakEditorItem.addActionListener(e -> chooseBakEditor());
+		langZh.addActionListener(e -> {
+			currentLocale = Locale.SIMPLIFIED_CHINESE;
+			reloadBundle();
+			updateUITexts();
+		});
+		langEn.addActionListener(e -> {
+			currentLocale = Locale.ENGLISH;
+			reloadBundle();
+			updateUITexts();
+		});
 		changeKeys.addActionListener(e -> {
-			boolean t = mainWindow.isAlwaysOnTop();
-			if(t) {
+			boolean wasOnTop = mainWindow.isAlwaysOnTop();
+			if (wasOnTop) {
 				mainWindow.setAlwaysOnTop(false);
 			}
-			cKeyInput = JOptionPane.showInputDialog("请输入KeyA和KeyB，用“/”隔开。e.g.:1234/4321");
-			ChangingKey();
-			if(t) {
+			cKeyInput = JOptionPane.showInputDialog(msg("dialog.changekey_prompt"));
+			changeKeys();
+			if (wasOnTop) {
 				mainWindow.setAlwaysOnTop(true);
 			}
-//				System.out.println(cKeyInput);
 		});
 		
 		manual.addActionListener(e -> {
@@ -567,8 +857,7 @@ public class MainProgram {
 			if(t) {
 				mainWindow.setAlwaysOnTop(false);
 			}
-			String a = "具体使用方法请查阅附带的README.md文件\n按键说明：\n新建：新建bak文件。      编码：将bak文件转DB文件\n解码：将DB文件转bak文件  退出：退出程序\n导出：导出Excel表格      改密：修改加密密钥\n帮助：本对话框           关于：部分信息";
-			JOptionPane.showMessageDialog(null, a, "帮助", JOptionPane.INFORMATION_MESSAGE);
+			JOptionPane.showMessageDialog(null, msg("help.content"), msg("dialog.help_title"), JOptionPane.INFORMATION_MESSAGE);
 			if(t) {
 				mainWindow.setAlwaysOnTop(true);
 			}
@@ -578,8 +867,7 @@ public class MainProgram {
 			if(t) {
 				mainWindow.setAlwaysOnTop(false);
 			}
-			String a = format("名称：PEncoder密碼加密器v%s \n作者：Ryan\n日期：%s", VERSION, UPDATE);
-			JOptionPane.showMessageDialog(null, a, "关于", JOptionPane.INFORMATION_MESSAGE);
+			JOptionPane.showMessageDialog(null, format(msg("about.content"), VERSION, UPDATE), msg("dialog.about_title"), JOptionPane.INFORMATION_MESSAGE);
 			if(t) {
 				mainWindow.setAlwaysOnTop(true);
 			}
@@ -633,8 +921,27 @@ public class MainProgram {
 			}
 		});
 
-//		设置关闭窗口时，退出程序
-		mainWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		// 快捷键：Ctrl+M 切换加密/解密模式
+		mainWindow.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+				KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK), "toggleEncryptDecrypt");
+		mainWindow.getRootPane().getActionMap().put("toggleEncryptDecrypt", new AbstractAction() {
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent e) {
+				if (encoderButton.isSelected()) {
+					decoderButton.setSelected(true);
+				} else {
+					encoderButton.setSelected(true);
+				}
+			}
+		});
+
+		mainWindow.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		mainWindow.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				doExit();
+			}
+		});
 		mainWindow.setVisible(true);
 		mainWindow.setLocationRelativeTo(null);//居中显示
 

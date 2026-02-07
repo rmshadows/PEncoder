@@ -1,6 +1,6 @@
 # PEncoder密码辅助
 
-- 当前版本：2.2
+- 当前版本：2.3
 
 #### 介绍
 
@@ -14,6 +14,7 @@ Java Swing 密码辅助工具
 1.  编译：`javac --module-source-path src -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8`
 2.  运行：`java -p bin -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`
 3.  打包：`jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.0`
+4.  **GraalVM 原生可执行文件**：在 GitHub 仓库中打开 Actions → 选择 “GraalVM Native Build” → “Run workflow” 手动触发，可为 Windows / Linux / macOS 生成无需 JRE 的原生可执行文件（使用 GraalVM 17）。
 
 #### 使用说明
 
@@ -21,8 +22,8 @@ Java Swing 密码辅助工具
 
 
 - *PEncoder用于密码加密;
-- *PEncoder支持Windows、Linux
-- *PEncoder版本:Java8+
+- *PEncoder 支持 Windows、Linux、macOS（跨平台）。
+- *PEncoder 版本：Java 11+（若使用 Java 8 需删除 module-info.java）。
 - *PEncoder在Windows下要求系统版本在1903（可能是吧？？我猜的）以上，‘CMD’打开看看开头是不是写着
 
 ```
@@ -59,13 +60,20 @@ Microsoft Windows [版本 10.0.18363.836]
 _______________________________________________________________________________________________________________
 - 使用方法
 
+**快捷键**
+- **Ctrl+M**：在工作区切换「加密」/「解密」模式。
+- **Ctrl+D**：将 DB 文件解码为 bak 文件（等同于菜单「文件 → 解密数据」）。
+
+**选项（菜单栏 → 选项）**
+- **退出时自动将 bak 编码为 DB**：勾选后，每次退出前会先备份 bak 与 DB，再尝试把 bak 编码为 DB；编码失败会询问是否仍退出。可防止误操作导致数据丢失。
+- **选择打开 bak 的编辑器**：点击「编辑」按钮时用哪个程序打开 bak 文件。程序会先列出当前系统检测到的编辑器（如 Windows 的记事本/Notepad++/VS Code，Linux 的 gedit/Kate/nano/vim 等，macOS 的 TextEdit/nano/vim 等），找不到再选「浏览…」指定可执行文件。未设置时：Windows 用记事本，Linux 用 gedit，macOS 用系统默认文本编辑。
+
 - Get Start：
 1、第一次使用：
     从“-菜单栏-文件-新建-”一个PEncoderDatabasebak文件;
 
 2、编辑PEncoderDatabasebak文件：
-    点击按钮“-编辑-”打开PEncoderDatabasebak文件（Windows下要求安装有Notepad.exe[记事本];
-    Linux下要求安装有Gedit[Gnome一般有自带]）。
+    点击按钮“-编辑-”打开PEncoderDatabasebak文件。未在选项中指定编辑器时：Windows 下使用记事本，Linux 下使用 Gedit，macOS 下使用系统默认文本编辑。可在「选项 → 选择打开 bak 的编辑器」中从系统检测到的编辑器里选择，或通过「浏览…」指定其他程序。
 
 格式示例：下面第三列（以冒号隔开算作一列）是我要加密的密码(1234567890、wodewangyiyun、skjbvinewir、rrrrrrrooo)
          [一共四列，分别是：平台名称、用户名、密码和备注]
@@ -252,7 +260,7 @@ KeyB：1433223v
     文件为PEncoderDatabasebak。
 要编码成PEncoderDatabase文件取决于你自己。老规矩，保留一个，删掉另一个，和PEncoder应用程序分开保存。
 
-7、关于帮助菜单中的，我觉得没必要说了，是个人都看的懂。哈哈哈哈哈哈哈
+7、关于帮助菜单：点击「帮助 → 如何使用」可查看简要说明与快捷键；其他详见本 README。
 
 8、2.0版本更新日志：
 
@@ -295,8 +303,14 @@ KeyB：1433223v
 
 ### 更新日志 - Update Log
 
+- 2026.02.07——2.3
+  - 版本与日期统一更新
 - 2022.08.08——2.2
-  - 修复了DB文件跨平台编码错误问题
+  - 修复了 DB 文件跨平台编码错误问题
+  - 新增：退出时可选自动将 bak 编码为 DB（退出前自动备份，防止误操作丢失数据）
+  - 新增：快捷键 Ctrl+D 解码 DB 为 bak，Ctrl+M 切换加密/解密模式
+  - 新增：选项「选择打开 bak 的编辑器」——先列出系统检测到的编辑器，找不到再浏览指定；支持 Windows / Linux / macOS
+  - 帮助说明中补充快捷键与选项说明；其他详见本 README
 
 ### 许可
 

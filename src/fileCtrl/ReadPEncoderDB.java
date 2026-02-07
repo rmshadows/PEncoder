@@ -8,158 +8,140 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 
 import algorithmSettings.AEScoder;
 import algorithmSettings.Base64coder;
 import iface.IfPwdCoder;
 
 /**
- * 类名：读取密码文件
- * 
+ * 密码数据库文件读写：bak 明文格式与 DB 编码格式的互转。
+ *
  * @author jessie
  */
-public class ReadPEncoderDB {
+public final class ReadPEncoderDB {
+
+	private static final String BAK_FILE = "PEncoderDatabasebak";
+	private static final String DB_FILE = "PEncoderDatabase";
+	private static final String DB_HEADER = "闽:::";
+
+	private ReadPEncoderDB() {
+		// 工具类
+	}
 
 	/**
-	 * 文件写入
-	 * 生成文本文件
-	 * @param TextIn String 待写入的文本
-	 * @param fileName String  文件名
-	 * @throws IOException 忽略抛出异常
+	 * 将文本写入指定文件（UTF-8，覆盖已存在文件）。
+	 *
+	 * @param content  待写入内容
+	 * @param fileName 文件名（不含路径，当前目录下）
 	 */
-	public static void writeToText(String TextIn, String fileName) throws IOException {
-		// 生成的文件路径
-		String fileSeparator = File.separator;
-		String path = "." + fileSeparator + fileName;
+	public static void writeToText(String content, String fileName) throws IOException {
+		String path = "." + File.separator + fileName;
 		File file = new File(path);
-		// 覆盖
 		if (file.exists()) {
 			file.delete();
-			file.createNewFile();
-		} else {
-			file.createNewFile();
 		}
-		// write 解决中文乱码问题
-		// FileWriter fw = new FileWriter(file, true);
-		OutputStreamWriter fw = new OutputStreamWriter(new FileOutputStream(file), "UTF-8");
-		BufferedWriter bw = new BufferedWriter(fw);
-		bw.write(TextIn);
-		bw.flush();
-		bw.close();
-		fw.close();
+		file.createNewFile();
+		try (BufferedWriter bw = new BufferedWriter(
+				new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
+			if (content != null) {
+				bw.write(content);
+			}
+			bw.flush();
+		}
 	}
 
 	/**
-	 * 新建密码文件
-	 * 新建密碼文件，第一次使用
-	 * @throws IOException 忽略抛出异常
+	 * 新建 bak 文件（若已存在则拒绝）。
 	 */
 	public static void newDBbakFile() throws IOException {
-		String fileSeparator = File.separator;
-		String dbFilePath = "." + fileSeparator + "PEncoderDatabasebak";
-//		System.out.println(dbFilePath);
-		File dbFile = new File(dbFilePath);
-//		System.out.println(fileSeparator);
-		if (dbFile.exists()) {
+		String path = "." + File.separator + BAK_FILE;
+		File file = new File(path);
+		if (file.exists()) {
 			System.out.println("bak文件存在!拒绝新建。");
-		} else {
-			try {
-				writeToText("使用前请删除此行，注意英文冒号的使用位置！格式示例：\n软件平台:账号名:密码:备注", "PEncoderDatabasebak");
-				System.out.println("已新建bak文件。");
-			} catch (Exception e) {
-				System.out.println("新建bak文件失败。");
-			}
+			return;
 		}
+		writeToText("使用前请删除此行，注意英文冒号的使用位置！格式示例：\n软件平台:账号名:密码:备注", BAK_FILE);
+		System.out.println("已新建bak文件。");
 	}
-	
+
 	/**
-	 * 解码密码文件
-	 * 解碼密碼文件
-	 * @throws IOException 忽略抛出异常
+	 * 解码 DB 文件为 bak 明文文件。
+	 *
+	 * @throws IOException 文件不存在或读写失败
 	 */
 	public static void decodeDB() throws IOException {
-		String fileSeparator = File.separator;
-		String dbFilePath = "." + fileSeparator + "PEncoderDatabase";
-//		System.out.println(dbFilePath);
-		File dbFile = new File(dbFilePath);
-		String readResult = null;
-//		System.out.println(fileSeparator);
-		if (dbFile.exists()) {
-			System.out.println("DB文件存在，开始读取……");
-		} else {
-			System.out.println("文件不存在或出错！请将PEncoderDatabase文件放置于当前路径并检查权限。");
+		String path = "." + File.separator + DB_FILE;
+		File file = new File(path);
+		if (!file.exists()) {
+			System.out.println("文件不存在或出错！请将 PEncoderDatabase 放置于当前路径并检查权限。");
+			throw new IOException("文件不存在: " + path);
 		}
-		String encoding = "UTF-8";
-		InputStreamReader read = new InputStreamReader(new FileInputStream(dbFilePath), encoding);// 考虑到编码格式
-		try (read) {
-			BufferedReader bufferedReader = new BufferedReader(read);
-			String lineTxt = null;
-			String zh = "闽:::";
-			while ((lineTxt = bufferedReader.readLine()) != null) {
-				if (lineTxt.contentEquals(zh)) {
-//					System.out.println(lineTxt.contentEquals(zh));
-					readResult = "";
+		System.out.println("DB文件存在，开始读取……");
+		StringBuilder readResult = new StringBuilder();
+		try (BufferedReader reader = new BufferedReader(
+				new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				if (line.contentEquals(DB_HEADER)) {
+					readResult.setLength(0);
 				} else {
-					readResult = readResult + lineTxt + "\n";
-//					System.out.println(zh.contentEquals(String.valueOf(lineTxt)));
-//					System.out.println(zh.contentEquals(lineTxt));
-//					System.out.println(lineTxt);
+					readResult.append(line).append("\n");
 				}
 			}
-		} catch (Exception e) {
-			System.out.println("文件读取出错!请注意格式及编码。");
-		} finally {
-			//			System.out.println(readResult);
-			System.out.println("读取DB文件完毕。");
 		}
-		readResult = readResult.substring(0, readResult.length() - 1);
-//		System.out.println(readResult);
+		System.out.println("读取DB文件完毕。");
+		String raw = readResult.toString();
+		if (raw.isEmpty()) {
+			System.out.println("DB 文件内容为空或仅有头部。");
+			return;
+		}
+		raw = raw.substring(0, raw.length() - 1).replaceAll("\\s+", "");
 		IfPwdCoder decry = new AEScoder();
-		String x = decry.decoder(readResult);
-		byte[] b = Base64coder.decryptBASE64(x);
+		String x = decry.decode(raw);
+		byte[] b = Base64coder.decodeBase64(x);
+		if (b == null) {
+			throw new IOException("Base64 解码失败");
+		}
 		String c = CheckingInput.byteArrayToStr(b);
-		c = c.substring(4, c.length());
-//		System.out.println(c);
-		writeToText(c, "PEncoderDatabasebak");
+		if (c == null || c.length() <= 4) {
+			throw new IOException("解密后内容异常");
+		}
+		c = c.substring(4);
+		writeToText(c, BAK_FILE);
 	}
-	
+
 	/**
-	 * 编码密码文件
-	 * 編碼密碼文件
-	 * @throws IOException 忽略抛出异常
+	 * 编码 bak 明文文件为 DB 文件。
+	 *
+	 * @throws IOException 文件不存在或读写失败
 	 */
 	public static void encodeDB() throws IOException {
-		String fileSeparator = File.separator;
-		String dbFilePath = "." + fileSeparator + "PEncoderDatabasebak";
-//		System.out.println(dbFilePath);
-		File dbFile = new File(dbFilePath);
-		String readResult = null;
-//		System.out.println(fileSeparator);
-		if (dbFile.exists()) {
-			System.out.println("bak文件存在，开始读取……");
-		} else {
-			System.out.println("文件不存在或出错！请将PEncoderDatabasebak文件放置于当前路径并检查权限。");
+		String path = "." + File.separator + BAK_FILE;
+		File file = new File(path);
+		if (!file.exists()) {
+			System.out.println("文件不存在或出错！请将 PEncoderDatabasebak 放置于当前路径并检查权限。");
+			throw new IOException("文件不存在: " + path);
 		}
-		String encoding = "UTF-8";
-		InputStreamReader read = new InputStreamReader(new FileInputStream(dbFilePath), encoding);// 考虑到编码格式
-		try (read) {
-			BufferedReader bufferedReader = new BufferedReader(read);
-			String lineTxt = null;
-			while ((lineTxt = bufferedReader.readLine()) != null) {
-				readResult = readResult + lineTxt + "\n";
+		System.out.println("bak文件存在，开始读取……");
+		StringBuilder readResult = new StringBuilder();
+		try (BufferedReader reader = new BufferedReader(
+				new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				readResult.append(line).append("\n");
 			}
-		} catch (Exception e) {
-			// TODO: handle exception
-			System.out.println("文件读取出错!请注意格式及编码。");
-		} finally {
-			System.out.println("读取bak文件完毕。");
 		}
-		String zh = "闽:::\n";
-		String a = Base64coder.encryptBASE64(CheckingInput.stringToByteArray(readResult));
-		IfPwdCoder cry = new AEScoder();
-		String x = cry.encode(a);
-		String w = zh + x;
-//		System.out.println(w);
-		writeToText(w, "PEncoderDatabase");
+		System.out.println("读取bak文件完毕。");
+		String content = readResult.toString();
+		byte[] bytes = CheckingInput.stringToByteArray(content);
+		if (bytes == null) {
+			throw new IOException("内容转字节失败");
+		}
+		String a = Base64coder.encodeBase64(bytes);
+		IfPwdCoder enc = new AEScoder();
+		String x = enc.encode(a);
+		String w = DB_HEADER + "\n" + x;
+		writeToText(w, DB_FILE);
 	}
 }

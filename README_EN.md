@@ -1,4 +1,4 @@
-### PEncoder2.1
+### PEncoder 2.3
 
 [中文使用文档戳我](https://gitee.com/rmshadows/pencoder_cipher_encryptor/blob/master/README.md)
 
@@ -6,13 +6,13 @@
 
 Name : PEncoder
 
-Current Version ：v2.1
+Current Version ：v2.3
 
-Function : Help you manage your password.Based on java,using Swing-GUI;
+Function : Help you manage your password. Based on Java, using Swing GUI.
 
-Environment : Java 11 (Java8 is OK,delete module-info.java),!!Win10 1903 Above!!
+Environment : Java 11+ (Java 8 is OK if you delete module-info.java). Win10 1903+ recommended on Windows.
 
-Platform : Windows & Linux
+Platform : Windows, Linux, macOS (cross-platform).
 
 Keys Length limit : <16
 
@@ -27,8 +27,9 @@ Run:
 `java -p bin -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`
 
 Jlink Pack:
-`jlink --launcher launcher=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.1`
+`jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.3`
 
+**GraalVM native executables:** In the GitHub repo go to Actions → “GraalVM Native Build” → Run workflow (manual trigger) to build native binaries for Windows / Linux / macOS (no JRE required; uses GraalVM 17).
 
 ！！This program may not work correctly on the version of win10 18XX.！！What cause this problem maybe notepad.exe.
 Open CMD ,take a look at the first few lines, if it looks like this: 
@@ -47,9 +48,17 @@ Good,you'll download archive file in RELEASE ,unzip it then run the 'Start' scri
 
 ### Get start:
 
+**Shortcuts**
+- **Ctrl+M** : Toggle between Encrypt and Decrypt mode in the work area.
+- **Ctrl+D** : Decode DB file to bak file (same as menu File → Decode data).
+
+**Options (menu Options)**
+- **Auto-encode bak to DB on exit** : When enabled, the app backs up both bak and DB, then encodes bak to DB before exit. If encoding fails, it asks whether to exit anyway. Reduces risk of data loss.
+- **Choose editor for bak file** : Which program opens the bak file when you click Edit. The app first lists detected editors on your system; if yours is not listed, use "Browse…" to select an executable. Unset = system default (Notepad / Gedit / macOS default text editor).
+
 !----------------------------------------!
 
-Before we getting start,you need to know:
+Before we getting start, you need to know:
 
 - PEncoderDatabasebak : PEncoderDatabasebak file is a passwords record file.It stored password by clear text.All  practice(adding password ,export as csv file ,change password...) are based on it.Hereinafter we call it bak file.
 
@@ -62,11 +71,7 @@ Before we getting start,you need to know:
 
 ![00](https://images.gitee.com/uploads/images/2020/0623/213208_b139ada5_7423713.png "屏幕截图.png")
 
-Then you'll see a new 'PEncoderDatabasebak' file has created.Click "-编辑-(Edit)" to modify the bak file ,it'll automatically opened with 'notepad.exe' on Windows or 'Gedit' on Linux ,therefore make sure you had installed them.If you dont have one ,there is a way to solve this:
-
-1.Modifying soure code ,change to the application you used to edit 'txt' file.
-
-2.Find the bak file in your file explorer and open it with your favorite text editor.
+Then you'll see a new 'PEncoderDatabasebak' file has been created. Click "编辑 (Edit)" to open the bak file. If you haven't set an editor in options, it uses: Notepad on Windows, Gedit on Linux, or the default text editor on macOS. You can choose the editor via **Options → Choose editor for bak file**: the app lists detected editors (e.g. Notepad, Notepad++, VS Code on Windows; gedit, Kate, nano, vim on Linux; TextEdit, nano, vim on macOS), or choose "Browse…" to pick another program.
 
 ![01](https://images.gitee.com/uploads/images/2020/0623/213353_c5884bff_7423713.png "屏幕截图.png")
 
@@ -195,11 +200,16 @@ Assumption of New Keys are:
 Press Enter.A new bak file generated.This is in case of a typo.Open New bak file with text editor,try to decrypt your password with new Keys.If everything is OK ,delete old bak file,rename New bak file with "PEncoderDatabasebak" then closed and convert to DB file to stored your encrypted password info.
 
 ### Other function
-- Alway on top/Cancel on top.
-- Right-click menu test
+- Always on top / Cancel on top.
+- Right-click menu test.
+- Help menu shows a short summary and shortcuts; for full details see this README and the Chinese README.
 
 ![16](https://images.gitee.com/uploads/images/2020/0624/000943_1e2b873a_7423713.png "屏幕截图.png")
 ![17](https://images.gitee.com/uploads/images/2020/0624/001023_face0511_7423713.png "屏幕截图.png")
+
+### Update log
+- **v2.3** (2026-02-07): Version and date bump.
+- **v2.2** (2022-08-08): Exit option: auto-encode bak to DB on exit (with backup). Shortcuts: Ctrl+D decode DB to bak, Ctrl+M toggle Encrypt/Decrypt. Options: choose editor for bak file (list of detected editors + Browse); supports Windows, Linux, macOS. Help text updated with shortcuts and options.
 
 ### Thanks for watching
 

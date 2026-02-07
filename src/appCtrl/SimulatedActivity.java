@@ -1,27 +1,33 @@
 package appCtrl;
 
 /**
- * 无用功能不用在意。
+ * 模拟耗时任务，用于进度条彩蛋（无实际业务）。
  */
 class SimulatedActivity implements Runnable {
 	private volatile int current;
-	 	private final int amount;
-	public SimulatedActivity(int paramInt) {
-		this.current = 0;
-		this.amount = paramInt;
+	private final int total;
+
+	SimulatedActivity(int total) {
+		this.total = total;
 	}
-	public int getAmount() {
-		return this.amount;
+
+	int getAmount() {
+		return total;
 	}
-	public int getCurrent() {
-		return this.current;
+
+	int getCurrent() {
+		return current;
 	}
+
+	@Override
 	public void run() {
-		while (this.current < this.amount) {
+		while (current < total) {
 			try {
 				Thread.sleep(50L);
-			} catch (InterruptedException ignored) {}
-			this.current++;
+			} catch (InterruptedException ignored) {
+				Thread.currentThread().interrupt();
+			}
+			current++;
 		}
 	}
 }

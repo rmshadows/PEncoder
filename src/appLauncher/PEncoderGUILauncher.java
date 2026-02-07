@@ -2,19 +2,30 @@ package appLauncher;
 
 import appCtrl.MainProgram;
 
+import javax.swing.SwingUtilities;
+
 /**
- * 类名：Swing用户界面加载器
- * 用于加载图形界面
+ * PEncoder 图形界面启动器。
+ * 在 EDT 中创建并显示主窗口，符合 Swing 线程安全要求。
+ *
  * @author jessie
  */
+public final class PEncoderGUILauncher {
 
-public class PEncoderGUILauncher {
-	
+	private PEncoderGUILauncher() {
+		// 工具类，禁止实例化
+	}
+
 	/**
-	 * 方法名：主程序入口main方法
-	 * @param args 略
+	 * 程序入口。在事件分发线程中初始化并显示主窗口。
+	 *
+	 * @param args 命令行参数（当前未使用）
 	 */
 	public static void main(String[] args) {
-		javax.swing.SwingUtilities.invokeLater(() -> new MainProgram().mainWindowInit());
+		SwingUtilities.invokeLater(PEncoderGUILauncher::launchMainWindow);
+	}
+
+	private static void launchMainWindow() {
+		new MainProgram().mainWindowInit();
 	}
 }
