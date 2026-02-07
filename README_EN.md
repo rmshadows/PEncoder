@@ -10,7 +10,7 @@ Current Version ：v2.3
 
 Function : Help you manage your password. Based on Java, using Swing GUI.
 
-Environment : Java 11+ (Java 8 is OK if you delete module-info.java). Win10 1903+ recommended on Windows.
+Environment : Java 17+, Maven 3.6+ (for build). Win10 1903+ recommended on Windows.
 
 Platform : Windows, Linux, macOS (cross-platform).
 
@@ -20,16 +20,21 @@ Password Length limit: <30
 
 
 ### Compile
-Compile:
-`javac --module-source-path src -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8`
+The project is a standard JPMS modular Maven project (`src/main/java` with `module-info.java`, resources in `src/main/resources`). Requires Java 17+ and Maven 3.6+.
+
+Build:
+`mvn package -DskipTests`
+→ produces `target/pencoder.jar`
 
 Run:
-`java -p bin -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`
+`java -p target/pencoder.jar -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher`
+or
+`java -jar target/pencoder.jar`
 
-Jlink Pack:
-`jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path bin --add-modules cn.rmshadows.PEncoderModule --output PEncoder2.3`
+Jlink (optional):
+`jlink --launcher StartPEncoder=cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher --module-path target/pencoder.jar --add-modules cn.rmshadows.PEncoderModule --output PEncoder-runtime`
 
-**GraalVM native executables:** In the GitHub repo go to Actions → “GraalVM Native Build” → Run workflow (manual trigger) to build native binaries for Windows / Linux / macOS (no JRE required; uses GraalVM 17).
+**GraalVM native executables:** In the GitHub repo go to Actions → “GraalVM Native Build” → Run workflow (manual trigger) to build native binaries for Windows / Linux / macOS (Liberica NIK). On Linux/macOS use `./run.sh` to launch (AWT libs bundled in `lib/`).
 
 ！！This program may not work correctly on the version of win10 18XX.！！What cause this problem maybe notepad.exe.
 Open CMD ,take a look at the first few lines, if it looks like this: 

@@ -1,12 +1,41 @@
-# 使用 Liberica Native Image Kit 为 Windows / Linux / macOS 构建原生可执行文件（手动触发）
-# 使用 Liberica NIK 而非 GraalVM Community，因其对 AWT/Swing 支持完整，可避免 "no awt in java.library.path"
-name: GraalVM Native Build
+# GraalVM Native Image：为 Windows / Linux / macOS 构建原生可执行文件（手动触发）
+# 使用 Liberica Native Image Kit（AWT/Swing 支持完整）；先统一打 JAR，再各平台 native-image
+name: Native Image Build
 
 on:
   workflow_dispatch:
 
+env:
+  JAVA_VERSION: "17"
+  MAVEN_OPTS: "-Xmx1024m"
+
 jobs:
+  # 仅构建一次 JAR，供各平台 native-image 使用
+  build-jar:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: "maven"
+
+      - name: Build JAR
+        run: mvn -B package -DskipTests
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: pencoder-jar
+          path: target/pencoder.jar
+
+  # 各平台构建 native 可执行文件
   build-native:
+    needs: build-jar
     strategy:
       fail-fast: false
       matrix:
@@ -16,7 +45,6 @@ jobs:
           - os: windows-latest
             artifact_name: PEncoder-windows-x64
           - os: macos-latest
-            # GitHub 当前 macos-latest 多为 ARM64 (Apple Silicon)
             artifact_name: PEncoder-macos-aarch64
 
     runs-on: ${{ matrix.os }}
@@ -25,35 +53,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Linux dependencies (AWT/X11 for native-image)
+      - name: Download JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: pencoder-jar
+
+      - name: Install Linux dependencies (AWT/X11)
         if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libxtst-dev libxi-dev libxrender-dev libxext-dev libxrandr-dev libfreetype6-dev libfontconfig1-dev
+          sudo apt-get install -y \
+            libx11-dev libxtst-dev libxi-dev libxrender-dev \
+            libxext-dev libxrandr-dev libfreetype6-dev libfontconfig1-dev
         shell: bash
 
       - name: Set up Liberica Native Image Kit
         uses: graalvm/setup-graalvm@v1
         with:
-          java-version: '17'
-          distribution: 'liberica'
-          # Liberica NIK 支持 AWT/Swing，避免 "no awt in java.library.path"
-          # 本项目无 pom.xml/gradle，不设置 cache
-
-      - name: Compile module
-        shell: bash
-        run: |
-          # javac --module-source-path 要求目录名为模块名，本项目是扁平 src/，先拼出合规结构
-          mkdir -p src-module/cn.rmshadows.PEncoderModule
-          cp -r src/* src-module/cn.rmshadows.PEncoderModule/
-          mkdir -p bin
-          javac --module-source-path src-module -d bin -m cn.rmshadows.PEncoderModule -encoding UTF-8
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "liberica"
+          # native-image 已包含在 Liberica NIK，无需 components；不在此处使用 Maven cache（仅下载 JAR）
 
       - name: Build native image
         run: |
-          native-image --module-path bin \
+          native-image \
+            --module-path pencoder.jar \
             -m cn.rmshadows.PEncoderModule/appLauncher.PEncoderGUILauncher \
-            -o PEncoder --no-fallback \
+            -o PEncoder \
+            --no-fallback \
             -Djava.awt.headless=false
         shell: bash
 
@@ -63,21 +90,19 @@ jobs:
         run: |
           mkdir -p dist
           cp PEncoder.exe dist/
-          # 可选：复制 JDK 的 AWT 等 DLL，与 exe 同目录便于加载
           if [ -d "$JAVA_HOME/bin" ]; then
             mkdir -p dist/bin
             cp "$JAVA_HOME/bin"/*.dll dist/bin/ 2>/dev/null || true
           fi
-          (cd dist && (echo '@echo off'; echo 'set "PATH=%~dp0bin;%PATH%"'; echo '"%~dp0PEncoder.exe" %*') > run.bat)
+          printf '@echo off\r\nset "PATH=%%~dp0bin;%%PATH%%"\r\n"%%~dp0PEncoder.exe" %%*\r\n' > dist/run.bat
 
-      - name: Collect artifact (Linux) + bundle AWT libs
+      - name: Collect artifact (Linux)
         if: matrix.os == 'ubuntu-22.04'
         shell: bash
         run: |
           mkdir -p dist dist/lib
           cp PEncoder dist/
           chmod +x dist/PEncoder
-          # 将 JDK 中的 AWT 等 .so 打包，运行时通过 LD_LIBRARY_PATH 加载，解决 "no awt in java.library.path"
           for d in "$JAVA_HOME/lib" "$JAVA_HOME/lib/amd64" "$JAVA_HOME/lib/x86_64-linux-gnu"; do
             [ -d "$d" ] && cp -n "$d"/*.so dist/lib/ 2>/dev/null || true
           done
@@ -89,7 +114,7 @@ jobs:
           RUN
           chmod +x dist/run.sh
 
-      - name: Collect artifact (macOS) + bundle AWT libs
+      - name: Collect artifact (macOS)
         if: matrix.os == 'macos-latest'
         shell: bash
         run: |
